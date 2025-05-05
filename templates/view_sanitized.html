@@ -10,13 +10,7 @@
 <div class="container py-4">
     <div class="alert alert-warning text-center">
         <h2><i class="fa-solid fa-triangle-exclamation"></i> Unsafe Content Removed</h2>
-        <p class="mb-0">This page contained potentially harmful content. The following issues were detected and removed:</p>
-        <ul class="mt-2">
-            {% for issue in issues %}
-            <li><b>{{ issue }}</b></li>
-            {% endfor %}
-        </ul>
-        <p class="text-muted">Reason: {{ reason }}</p>
+        <p class="mb-0">This page contained potentially harmful content and has been sanitized for safe viewing.</p>
         <a href="/" class="btn btn-primary mt-3"><i class="fa-solid fa-arrow-left"></i> Back to Report</a>
     </div>
     <div class="card mt-4">
@@ -24,17 +18,17 @@
             <i class="fa-solid fa-eye"></i> Sanitized Page Preview
         </div>
         <div class="card-body">
-            {{ html|safe }}
+            <iframe id="sanitized-preview" sandbox="allow-same-origin" style="width:100%;min-height:400px;border:1px solid #ddd;"></iframe>
         </div>
     </div>
-    <div class="mt-3">
-        <h5>Details</h5>
-        <ul>
-            {% for detail in details %}
-            <li>{{ detail }}</li>
-            {% endfor %}
-        </ul>
-    </div>
 </div>
+<script>
+    // Insert sanitized HTML into the iframe safely
+    const iframe = document.getElementById('sanitized-preview');
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    doc.open();
+    doc.write(`{{ html|tojson|safe }}`);
+    doc.close();
+</script>
 </body>
 </html>

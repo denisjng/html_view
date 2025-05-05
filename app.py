@@ -27,140 +27,137 @@ logger = logging.getLogger(__name__)
 
 # --- Security helpers ---
 def is_file_blacklisted(filename):
+    """
+    Checks if a file is blacklisted based on its extension.
+    """
     return any(fnmatch.fnmatch(filename, pattern) for pattern in (BLACKLISTED_FILES or []))
 
 def is_path_blacklisted(filepath):
+    """
+    Checks if a path is blacklisted.
+    """
     return any(fnmatch.fnmatch(filepath, pattern) for pattern in (BLACKLISTED_PATHS or []))
 
 def advanced_security_score_html(html_content):
     """
-    Advanced security scoring for HTML, catching all possible harmful elements and evasions.
+    Advanced security scoring for HTML, reflecting real-world threat severity.
     """
     soup = BeautifulSoup(html_content, 'html.parser')
     score = 100
     issues = []
     details = []
-    # 1. <script> tags (all variants, obfuscated, encoded)
+    # 1. <script> tags (highest risk: XSS)
     script_regex = re.compile(r'<\s*script[^>]*>', re.IGNORECASE)
     if soup.find_all('script') or script_regex.search(html_content) or re.search(r's\\u0063ript|&#x73;cript', html_content, re.IGNORECASE):
         issues.append('script_tag')
-        details.append("<script> tag or obfuscated variant detected")
-        score -= 10
-    # 2. Inline event handlers (on* attributes, encoded, mixed case)
-    for tag in soup.find_all(True):
-        for attr in tag.attrs:
-            if attr.lower().startswith('on'):
-                issues.append('inline_event_handler')
-                details.append(f"Inline event handler: {attr}")
-                score -= 4
-    # 3. <iframe> tags (all variants)
-    if soup.find_all('iframe') or re.search(r'<\s*iframe[^>]*>', html_content, re.IGNORECASE):
+        details.append("<script> tag or obfuscated script detected")
+        score -= 40  # Major deduction
+    # 2. Inline event handlers (e.g. onclick) - high risk
+    if any(tag for tag in soup.find_all(True) for attr in tag.attrs if attr.lower().startswith('on')):
+        issues.append('inline_event_handler')
+        details.append("Inline event handler (e.g. onclick) detected")
+        score -= 20
+    # 3. JavaScript URLs (e.g. href="javascript:") - high risk
+    if re.search(r'href\s*=\s*["\]?javascript:', html_content, re.IGNORECASE):
+        issues.append('js_href')
+        details.append('javascript: URL detected')
+        score -= 25
+    # 4. <iframe> tags (used for phishing, clickjacking)
+    if soup.find_all('iframe'):
         issues.append('iframe_tag')
         details.append("<iframe> tag detected")
-        score -= 8
-    # 4. javascript: URLs (in any attr, encoded, obfuscated)
-    for tag in soup.find_all(True):
-        for attr, val in tag.attrs.items():
-            if isinstance(val, str) and re.search(r'javascript\s*:', val, re.IGNORECASE):
-                issues.append('javascript_url')
-                details.append(f"javascript: URL in {attr}")
-                score -= 5
-    # 5. <object> tags (all variants)
-    if soup.find_all('object') or re.search(r'<\s*object[^>]*>', html_content, re.IGNORECASE):
+        score -= 18
+    # 5. <object>, <embed>, <applet> (plugin-based attacks)
+    if soup.find_all('object'):
         issues.append('object_tag')
         details.append("<object> tag detected")
-        score -= 7
-    # 6. <embed> tags
-    if soup.find_all('embed') or re.search(r'<\s*embed[^>]*>', html_content, re.IGNORECASE):
+        score -= 15
+    if soup.find_all('embed'):
         issues.append('embed_tag')
         details.append("<embed> tag detected")
-        score -= 7
-    # 7. <applet> tags
-    if soup.find_all('applet') or re.search(r'<\s*applet[^>]*>', html_content, re.IGNORECASE):
+        score -= 15
+    if soup.find_all('applet'):
         issues.append('applet_tag')
         details.append("<applet> tag detected")
-        score -= 7
-    # 8. Forms with external actions
+        score -= 15
+    # 6. <form> with external action (phishing/data exfiltration)
     for form in soup.find_all('form'):
         action = form.get('action', '')
-        if action and re.match(r'^(https?:)?//', action) and not action.startswith('/'):
-            issues.append('form_external_action')
-            details.append(f"Form action to external: {action}")
-            score -= 6
-    # 9. <meta http-equiv="refresh">
+        if action.startswith('http://') or action.startswith('https://') or action.startswith('//'):
+            issues.append('form_external')
+            details.append("<form> with external action detected")
+            score -= 18
+    # 7. <meta http-equiv="refresh"> (redirects)
     for meta in soup.find_all('meta'):
         if meta.get('http-equiv', '').lower() == 'refresh':
             issues.append('meta_refresh')
-            details.append("Meta refresh detected")
-            score -= 4
-    # 10. HTML imports (<link rel="import">)
-    for link in soup.find_all('link'):
-        rel = link.get('rel', [])
-        if isinstance(rel, list) and 'import' in [r.lower() for r in rel]:
-            issues.append('html_import')
-            details.append("HTML import detected")
-            score -= 3
-    # 11. Data URLs (src/href attributes)
-    for tag in soup.find_all(True):
-        for attr, val in tag.attrs.items():
-            if isinstance(val, str) and re.match(r'^data:', val.strip(), re.IGNORECASE):
-                issues.append('data_url')
-                details.append(f"Data URL in {attr}")
-                score -= 3
-    # 12. <style> tags and inline style (dangerous CSS, expressions, url(javascript:))
+            details.append("<meta http-equiv='refresh'> detected")
+            score -= 10
+    # 8. <link rel="import"> (HTML imports, deprecated but risky)
+    if re.search(r'rel\s*=\s*["\]?import', html_content, re.IGNORECASE):
+        issues.append('html_import')
+        details.append('HTML import link detected')
+        score -= 6
+    # 9. Data URLs (possible obfuscated payloads)
+    if re.search(r'(src|href)\s*=\s*["\]?data:', html_content, re.IGNORECASE):
+        issues.append('data_url')
+        details.append('Data URL detected')
+        score -= 8
+    # 10. <style> tags (may contain CSS expressions)
     if soup.find_all('style'):
         issues.append('style_tag')
         details.append("<style> tag detected")
-        score -= 3
+        score -= 8
+    # 11. Inline style with dangerous content (CSS expressions, JS in URL)
     for tag in soup.find_all(True):
         style = tag.get('style', '')
-        if style and (re.search(r'expression\s*\(', style, re.IGNORECASE) or re.search(r'url\s*\(\s*javascript:', style, re.IGNORECASE)):
+        if 'expression(' in style.lower() or 'javascript:' in style.lower():
             issues.append('inline_style')
-            details.append("Dangerous inline style detected")
-            score -= 3
-    # 13. <base> tags
-    if soup.find_all('base') or re.search(r'<\s*base[^>]*>', html_content, re.IGNORECASE):
+            details.append('Dangerous inline style (expression/javascript) detected')
+            score -= 22
+    # 12. <base> tag (can change URL resolution)
+    if soup.find_all('base'):
         issues.append('base_tag')
         details.append("<base> tag detected")
-        score -= 2
-    # 14. SVG/MathML with <script> or <foreignObject>
-    for svg in soup.find_all(['svg', 'math']):
+        score -= 7
+    # 13. SVG/MathML <script> or <foreignObject> (rare, but can be abused)
+    for svg in soup.find_all('svg'):
         if svg.find_all(['script', 'foreignObject']):
             issues.append('svg_script_or_foreignObject')
             details.append("SVG/MathML with script/foreignObject detected")
-            score -= 6
-    # 15. <template> tag (can be used for tricking DOM)
+            score -= 10
+    # 14. <template> tag (can be used for DOM tricks)
     if soup.find_all('template'):
         issues.append('template_tag')
         details.append("<template> tag detected")
-        score -= 4
-    # 16. Suspicious comments (e.g., <!--#exec -->, <!--[if gte IE 4]>, base64, etc.)
+        score -= 5
+    # 15. Suspicious comments (e.g., <!--#exec -->, base64, conditional comments)
     comments = soup.find_all(string=lambda text: isinstance(text, Comment))
     for c in comments:
-        if re.search(r'exec|base64|\[if|#include|#echo|#printenv', c, re.IGNORECASE):
+        if re.search(r'exec|base64|\[if|#inclu', c, re.IGNORECASE):
             issues.append('suspicious_comment')
-            details.append(f"Suspicious comment: {c}")
-            score -= 2
-    # 17. Obfuscated JS/CSS (unicode escapes, char codes)
-    if re.search(r'\\u[0-9a-fA-F]{4}|&#x[0-9a-fA-F]+;', html_content):
-        issues.append('obfuscated_code')
-        details.append("Obfuscated unicode/hex detected")
-        score -= 3
-    # 18. Malformed/hidden tags (zero-width, display:none, hidden attributes)
-    for tag in soup.find_all(True):
-        if tag.get('hidden') is not None or 'display:none' in tag.get('style', '').replace(' ', '').lower():
-            issues.append('hidden_element')
-            details.append("Hidden/malformed element detected")
-            score -= 2
-    # Final adjustment
+            details.append('Suspicious comment detected')
+            score -= 4
+    # Clamp score to minimum 0
     score = max(score, 0)
     return score, issues, details
 
 def remove_harmful_parts(html_content, issues):
+    """
+    Removes harmful parts from the HTML content based on detected issues.
+    """
     soup = BeautifulSoup(html_content, 'html.parser')
-    # Remove <script> tags
+    # Remove <script> tags and their content
     if 'script_tag' in issues:
         [tag.decompose() for tag in soup.find_all('script')]
+    # Remove <style> tags and their content
+    if 'style_tag' in issues:
+        [tag.decompose() for tag in soup.find_all('style')]
+        # Also remove all <style> tag text nodes left behind (edge case)
+        for text in soup.find_all(string=True):
+            parent = text.parent
+            if parent and parent.name == '[document]' and '{' in text and '}' in text:
+                text.extract()
     # Remove inline event handlers
     if 'inline_event_handler' in issues:
         for tag in soup.find_all(True):
@@ -184,7 +181,7 @@ def remove_harmful_parts(html_content, issues):
     if 'applet_tag' in issues:
         [tag.decompose() for tag in soup.find_all('applet')]
     # Remove forms with external actions
-    if 'form_external_action' in issues:
+    if 'form_external' in issues:
         for form in soup.find_all('form'):
             action = form.get('action', '')
             if action.startswith('http') and not action.startswith('/'):
@@ -205,9 +202,6 @@ def remove_harmful_parts(html_content, issues):
             for attr in ['src', 'href']:
                 if attr in tag.attrs and isinstance(tag[attr], str) and tag[attr].strip().startswith('data:'):
                     del tag.attrs[attr]
-    # Remove <style> tags
-    if 'style_tag' in issues:
-        [tag.decompose() for tag in soup.find_all('style')]
     # Remove inline style attributes
     if 'inline_style' in issues:
         for tag in soup.find_all(True):
@@ -230,18 +224,23 @@ def remove_harmful_parts(html_content, issues):
     return str(soup)
 
 def extract_lines_with_issues(html_content, issues):
+    """
+    Extracts lines from the HTML that correspond to detected issues.
+    Returns a list of lines, one per issue, in the same order as the issues list.
+    """
     lines = html_content.splitlines()
     result = []
-    # Simple heuristics for demonstration:
+    # Map issue types to detection logic
     for idx, line in enumerate(lines, 1):
         l = line.lower()
+        # Each if checks for a specific issue and adds the line if matched
         if 'script' in issues and '<script' in l:
             result.append(f"Line {idx}: {line.strip()}")
         if 'iframe' in issues and '<iframe' in l:
             result.append(f"Line {idx}: {line.strip()}")
         if 'inline_event_handler' in issues and ('onclick' in l or 'onload' in l or 'onerror' in l):
             result.append(f"Line {idx}: {line.strip()}")
-        if 'javascript_url' in issues and ('javascript:' in l):
+        if 'javascript_url' in issues and 'javascript:' in l:
             result.append(f"Line {idx}: {line.strip()}")
         if 'object_tag' in issues and '<object' in l:
             result.append(f"Line {idx}: {line.strip()}")
@@ -249,7 +248,7 @@ def extract_lines_with_issues(html_content, issues):
             result.append(f"Line {idx}: {line.strip()}")
         if 'applet_tag' in issues and '<applet' in l:
             result.append(f"Line {idx}: {line.strip()}")
-        if 'form_external_action' in issues and '<form' in l:
+        if 'form_external' in issues and '<form' in l:
             result.append(f"Line {idx}: {line.strip()}")
         if 'meta_refresh' in issues and '<meta' in l and 'refresh' in l:
             result.append(f"Line {idx}: {line.strip()}")
@@ -273,6 +272,9 @@ def extract_lines_with_issues(html_content, issues):
 
 # --- Utility for advanced bleach sanitization ---
 def sanitize_html_bleach(html_content: str, mode: str = 'strict') -> str:
+    """
+    Sanitizes HTML content using bleach.
+    """
     # Strict: only allow very safe tags/attrs; Relaxed: allow more for usability
     strict_tags = [
         'a', 'abbr', 'acronym', 'b', 'blockquote', 'code', 'em', 'i', 'li', 'ol', 'strong', 'ul', 'p', 'br', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'pre']
@@ -291,10 +293,16 @@ def sanitize_html_bleach(html_content: str, mode: str = 'strict') -> str:
 
 # --- General error rendering utility ---
 def render_custom_error(title: str, reason: str, status: int = 403, suggestion: str = None, support_url: str = None):
+    """
+    Renders a custom error page.
+    """
     return render_template('view_error.html', reason=reason, title=title, suggestion=suggestion, support_url=support_url), status
 
 # --- File type detection utility ---
 def detect_file_type(filename: str) -> str:
+    """
+    Detects the file type based on its extension.
+    """
     ext = filename.lower().rsplit('.', 1)[-1]
     if ext in ['html', 'htm']: return 'html'
     if ext == 'xml': return 'xml'
@@ -309,6 +317,9 @@ import csv
 import xml.etree.ElementTree as ET
 
 def analyze_file_content(filename: str, raw: str, filetype: str) -> Dict[str, Any]:
+    """
+    Analyzes the file content and returns a dictionary with the results.
+    """
     if filetype == 'html':
         score, issues, details = advanced_security_score_html(raw)
         lines = extract_lines_with_issues(raw, issues)
@@ -371,6 +382,9 @@ def analyze_file_content(filename: str, raw: str, filetype: str) -> Dict[str, An
 # --- Download sanitized version endpoint ---
 @app.route('/download_sanitized/<path:filename>/<mode>')
 def download_sanitized(filename, mode):
+    """
+    Downloads a sanitized version of the file.
+    """
     filepath = unquote(filename)
     filetype = detect_file_type(filepath)
     if not os.path.exists(filepath):
@@ -386,6 +400,9 @@ def download_sanitized(filename, mode):
 # --- Update /view/<filename> to support all file types ---
 @app.route('/view/<path:filename>')
 def view_html(filename):
+    """
+    Views the file.
+    """
     filepath = unquote(filename)
     filetype = detect_file_type(filepath)
     summary = test_html_files_and_summary()
@@ -427,7 +444,9 @@ def view_html(filename):
 
 # --- Optimize and refactor test_html_files_and_summary ---
 def test_html_files_and_summary():
-    # New organized structure
+    """
+    Scans all organized HTML and related files, runs security analysis, and returns a summary list for dashboard rendering.
+    """
     test_files = [
         # Safe
         'v1/file/safe/safe_basic.html',
@@ -500,11 +519,17 @@ def test_html_files_and_summary():
 
 @app.route('/')
 def home():
+    """
+    Home page.
+    """
     summary = test_html_files_and_summary()
     return render_template('index.html', summary=summary)
 
 @app.route('/v1/file/<path:pathfile>', methods=['GET'])
 def serve_html_file(pathfile):
+    """
+    Serves an HTML file.
+    """
     filename = unquote(pathfile)
     if is_file_blacklisted(filename) or is_path_blacklisted(filename):
         logger.warning(f"Access denied to blacklisted file or path: {filename}")

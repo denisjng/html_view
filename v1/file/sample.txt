@@ -1,2 +1,0 @@
-This is a plain text file.
-But it could contain <script>alert('bad')</script> or other weird stuff.

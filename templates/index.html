@@ -67,13 +67,16 @@
                     <button class="btn btn-link btn-sm p-0 mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#details-{{ loop.index }}">Show Details</button>
                     <div class="collapse" id="details-{{ loop.index }}">
                         <ul class="mb-0">
-                            {% for detail in report.details %}
-                            <li>{{ detail }}</li>
+                            {% set details = report.details %}
+                            {% set lines = report.lines %}
+                            {% set max_len = details|length if details|length > lines|length else lines|length %}
+                            {% for i in range(max_len) %}
+                                <li>
+                                    {% if details|length > i %}<span class="text-danger">{{ details[i] }}</span>{% endif %}
+                                    {% if lines|length > i %}<div class="issue-line">{{ lines[i] }}</div>{% endif %}
+                                </li>
                             {% endfor %}
                         </ul>
-                        {% if report.lines %}
-                        <pre class="issue-line">{{ report.lines|join('\n') }}</pre>
-                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -93,13 +96,16 @@
                     <button class="btn btn-link btn-sm p-0 mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#details-{{ loop.index }}">Show Details</button>
                     <div class="collapse" id="details-{{ loop.index }}">
                         <ul class="mb-0">
-                            {% for detail in report.details %}
-                            <li>{{ detail }}</li>
+                            {% set details = report.details %}
+                            {% set lines = report.lines %}
+                            {% set max_len = details|length if details|length > lines|length else lines|length %}
+                            {% for i in range(max_len) %}
+                                <li>
+                                    {% if details|length > i %}<span class="text-danger">{{ details[i] }}</span>{% endif %}
+                                    {% if lines|length > i %}<div class="issue-line">{{ lines[i] }}</div>{% endif %}
+                                </li>
                             {% endfor %}
                         </ul>
-                        {% if report.lines %}
-                        <pre class="issue-line">{{ report.lines|join('\n') }}</pre>
-                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -119,13 +125,16 @@
                     <button class="btn btn-link btn-sm p-0 mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#details-{{ loop.index }}">Show Details</button>
                     <div class="collapse" id="details-{{ loop.index }}">
                         <ul class="mb-0">
-                            {% for detail in report.details %}
-                            <li>{{ detail }}</li>
+                            {% set details = report.details %}
+                            {% set lines = report.lines %}
+                            {% set max_len = details|length if details|length > lines|length else lines|length %}
+                            {% for i in range(max_len) %}
+                                <li>
+                                    {% if details|length > i %}<span class="text-danger">{{ details[i] }}</span>{% endif %}
+                                    {% if lines|length > i %}<div class="issue-line">{{ lines[i] }}</div>{% endif %}
+                                </li>
                             {% endfor %}
                         </ul>
-                        {% if report.lines %}
-                        <pre class="issue-line">{{ report.lines|join('\n') }}</pre>
-                        {% endif %}
                     </div>
                 </div>
             </div>
