@@ -1,0 +1,4 @@
+{
+  "user": "admin",
+  "message": "Welcome <script>alert('bad')</script>!"
+}

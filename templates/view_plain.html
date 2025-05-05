@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-4">
+    <div class="alert alert-info text-center">
+        <h2><i class="fa-solid fa-file-lines"></i> {{ filetype }} File Preview</h2>
+        <p class="mb-2">File: <code>{{ filename }}</code></p>
+        <a href="/download_sanitized/{{ filename }}/strict" class="btn btn-outline-success mb-3"><i class="fa-solid fa-download"></i> Download Sanitized Version</a>
+    </div>
+    <div class="card">
+        <div class="card-header bg-light">Content</div>
+        <div class="card-body">
+            <pre style="white-space: pre-wrap; word-break: break-all;">{{ content }}</pre>
+        </div>
+    </div>
+</div>
+{% endblock %}
