@@ -480,6 +480,7 @@ def test_html_files_and_summary():
         'v1/file/complex/complex_gallery.html',
         'v1/file/complex/complex_mixed.html',
         'v1/file/complex/complex_safe.html',
+        'v1/file/complex/TCD17710_QC_Plan_and_Tracking_20250303.html',
         # Other
         'v1/file/other/sample.xml',
         'v1/file/other/sample.json',
