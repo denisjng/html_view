@@ -11,6 +11,11 @@
         <div class="alert alert-success">
             <i class="fa-solid fa-shield-halved"></i> This page has been sanitized and is considered safe for normal viewing. All dangerous elements have been removed.
         </div>
+        {% if has_clickables %}
+        <div class="alert alert-warning">
+            <i class="fa-solid fa-ban"></i> <strong>Notice:</strong> All clickable elements (links, buttons, forms, etc.) are visually present but have been disabled for your safety in this preview. Interactions will not work.
+        </div>
+        {% endif %}
         <div class="card mt-4">
             <div class="card-header bg-success text-white">
                 <i class="fa-solid fa-eye"></i> Sanitized Full Page Preview

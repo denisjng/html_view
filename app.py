@@ -334,7 +334,20 @@ def fully_sanitize_html(html_content):
             soup.head.append(style_tag)
         else:
             soup.insert(0, style_tag)
-    return str(soup)
+    # Disable all clickable things (links, buttons, forms) by adding a data-disabled attribute
+    has_clickables = False
+    for tag in soup.find_all(['a', 'button', 'input', 'form', 'area']):
+        tag['data-disabled'] = 'true'
+        if tag.name == 'a':
+            tag['tabindex'] = '-1'
+            tag['onclick'] = 'return false;'
+            tag['href'] = tag.get('href', '#')
+        if tag.name == 'form':
+            tag['onsubmit'] = 'return false;'
+        if tag.name == 'button' or (tag.name == 'input' and tag.get('type') in ['submit', 'button', 'reset']):
+            tag['onclick'] = 'return false;'
+        has_clickables = True
+    return str(soup), has_clickables
 
 # --- General error rendering utility ---
 def render_custom_error(title: str, reason: str, status: int = 403, suggestion: str = None, support_url: str = None):
@@ -461,8 +474,8 @@ def view_html(filename):
         score = file_report['score']
         if score >= 50:
             # Render sanitized HTML as a normal page (styles applied, all dangerous elements removed)
-            cleaned = fully_sanitize_html(file_report['raw'])
-            return render_template('view_cleaned.html', html=cleaned, filename=filename)
+            cleaned, has_clickables = fully_sanitize_html(file_report['raw'])
+            return render_template('view_cleaned.html', html=cleaned, filename=filename, has_clickables=has_clickables)
         else:
             # Only allow the sandboxed preview (iframe)
             cleaned = sanitize_html_bleach(file_report['raw'], mode='strict')
