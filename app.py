@@ -291,6 +291,51 @@ def sanitize_html_bleach(html_content: str, mode: str = 'strict') -> str:
     else:
         return bleach.clean(html_content, tags=relaxed_tags, attributes=relaxed_attrs, strip=True)
 
+# --- Custom sanitizer for full-page safe rendering ---
+def fully_sanitize_html(html_content):
+    soup = BeautifulSoup(html_content, 'html.parser')
+    # Remove all <script>, <iframe>, <object>, <embed>, <applet>, <template>
+    for tag in soup.find_all(['script', 'iframe', 'object', 'embed', 'applet', 'template']):
+        tag.decompose()
+    # Remove forms with external actions
+    for form in soup.find_all('form'):
+        action = form.get('action', '')
+        if action.startswith('http') and not action.startswith('/'):
+            form.decompose()
+    # Remove dangerous attributes (event handlers, javascript:)
+    for tag in soup.find_all(True):
+        attrs_to_remove = [attr for attr in tag.attrs if attr.lower().startswith('on')]
+        for attr in attrs_to_remove:
+            del tag.attrs[attr]
+        for attr in ['href', 'src', 'action', 'style']:
+            if attr in tag.attrs and isinstance(tag[attr], str) and 'javascript:' in tag[attr].lower():
+                del tag.attrs[attr]
+    # Remove <meta http-equiv="refresh">
+    for meta in soup.find_all('meta'):
+        if meta.get('http-equiv', '').lower() == 'refresh':
+            meta.decompose()
+    # Remove <base> tags
+    for tag in soup.find_all('base'):
+        tag.decompose()
+    # Remove suspicious comments
+    for c in soup.find_all(string=lambda text: isinstance(text, Comment)):
+        c.extract()
+    # Move orphaned CSS into <style> in <head>
+    doc_strings = [t for t in soup.find_all(string=True) if t.parent.name == '[document]']
+    css_chunks = [t for t in doc_strings if '{' in t and '}' in t]
+    css_code = ''
+    for css in css_chunks:
+        css_code += css + '\n'
+        css.extract()
+    if css_code.strip():
+        style_tag = soup.new_tag('style')
+        style_tag.string = css_code
+        if soup.head:
+            soup.head.append(style_tag)
+        else:
+            soup.insert(0, style_tag)
+    return str(soup)
+
 # --- General error rendering utility ---
 def render_custom_error(title: str, reason: str, status: int = 403, suggestion: str = None, support_url: str = None):
     """
@@ -411,6 +456,18 @@ def view_html(filename):
         return render_custom_error("Not Found", "File not found in report list.", 404)
     if file_report['status'] in ('BLOCKED', 'ERROR', 'SKIPPED'):
         return render_custom_error("Access Denied", file_report['reason'], 403, suggestion="Contact admin if you believe this is a mistake.", support_url="mailto:support@example.com")
+    # New logic: allow normal sanitized view if score >= 50, else sandboxed preview only
+    if filetype == 'html':
+        score = file_report['score']
+        if score >= 50:
+            # Render sanitized HTML as a normal page (styles applied, all dangerous elements removed)
+            cleaned = fully_sanitize_html(file_report['raw'])
+            return render_template('view_cleaned.html', html=cleaned, filename=filename)
+        else:
+            # Only allow the sandboxed preview (iframe)
+            cleaned = sanitize_html_bleach(file_report['raw'], mode='strict')
+            return render_template('view_sanitized.html', html=cleaned, reason=file_report['reason'], issues=file_report['issues'], details=file_report['details'], filename=filename)
+    # For other types, show as plain text or error
     if file_report['status'] == 'UNSAFE':
         if filetype == 'html':
             cleaned = sanitize_html_bleach(file_report['raw'], mode='strict')
