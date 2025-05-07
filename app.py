@@ -567,51 +567,25 @@ def view_html(filename):
     else:
         return render_custom_error("Unknown File Type", "Cannot preview this file type.", 415)
 
+@app.route('/v1/file/<path:filename>')
+def direct_sanitized_view(filename):
+    """
+    Direct access to sanitized view of a file in v1/file.
+    """
+    return view_html(f'v1/file/{filename}')
+
 # --- Optimize and refactor test_html_files_and_summary ---
 def test_html_files_and_summary():
     """
     Scans all organized HTML and related files, runs security analysis, and returns a summary list for dashboard rendering.
     """
-    test_files = [
-        # Safe
-        'v1/file/safe/safe_basic.html',
-        # Harmful (one per case)
-        'v1/file/harmful/harmful_script.html',
-        'v1/file/harmful/harmful_iframe.html',
-        'v1/file/harmful/harmful_js_href.html',
-        'v1/file/harmful/harmful_inline_event.html',
-        'v1/file/harmful/harmful_object.html',
-        'v1/file/harmful/harmful_embed.html',
-        'v1/file/harmful/harmful_applet.html',
-        'v1/file/harmful/harmful_form_external.html',
-        'v1/file/harmful/harmful_meta_refresh.html',
-        'v1/file/harmful/harmful_html_import.html',
-        'v1/file/harmful/harmful_data_url.html',
-        'v1/file/harmful/harmful_style.html',
-        'v1/file/harmful/harmful_inline_style.html',
-        'v1/file/harmful/harmful_base.html',
-        'v1/file/harmful/harmful_svg_script.html',
-        'v1/file/harmful/harmful_template.html',
-        'v1/file/harmful/harmful_comment.html',
-        'v1/file/harmful/harmful_multiple.html',
-        # Complex
-        'v1/file/complex/complex_blog.html',
-        'v1/file/complex/complex_news.html',
-        'v1/file/complex/complex_dashboard.html',
-        'v1/file/complex/complex_ecommerce.html',
-        'v1/file/complex/complex_portfolio.html',
-        'v1/file/complex/complex_corporate.html',
-        'v1/file/complex/complex_forum.html',
-        'v1/file/complex/complex_gallery.html',
-        'v1/file/complex/complex_mixed.html',
-        'v1/file/complex/complex_safe.html',
-        'v1/file/complex/TCD17710_QC_Plan_and_Tracking_20250303.html',
-        # Other
-        'v1/file/other/sample.xml',
-        'v1/file/other/sample.json',
-        'v1/file/other/sample.csv',
-        'v1/file/other/sample.txt',
-    ]
+    # Scan all files in v1/file (no subfolders)
+    test_files = []
+    base_dir = os.path.join('v1', 'file')
+    for fname in os.listdir(base_dir):
+        fpath = os.path.join(base_dir, fname)
+        if os.path.isfile(fpath):
+            test_files.append(fpath.replace('\\', '/'))
     summary = []
     for file in test_files:
         filename = unquote(file)
@@ -648,6 +622,10 @@ def home():
     """
     Home page.
     """
+    return redirect(url_for('dashboard'))
+
+@app.route('/dashboard')
+def dashboard():
     summary = test_html_files_and_summary()
     return render_template('index.html', summary=summary)
 
