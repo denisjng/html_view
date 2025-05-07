@@ -42,12 +42,13 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <span><b>{{ report.file|replace('v1/file/','') }}</b></span>
-                        <span class="badge bg-success">SAFE</span>
                         <span>Score: {{ report.score }}</span>
                         <a href="{{ url_for('view_html', filename=report.file) }}" class="btn btn-outline-primary btn-sm">View</a>
                     </div>
-                    {% if report.issues %}
-                    <div class="mt-2 text-muted">Issues: {{ report.issues|join(', ') }}</div>
+                    {% if report.score == 100 and (not report.issues or report.issues|length == 0) %}
+                        <div class="alert alert-success mt-2 mb-0">This file is safe. No issues were found.</div>
+                    {% elif report.issues %}
+                        <div class="mt-2 text-muted">Issues: {{ report.issues|join(', ') }}</div>
                     {% endif %}
                 </div>
             </div>
@@ -59,25 +60,28 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <span><b>{{ report.file|replace('v1/file/','') }}</b></span>
-                        <span class="badge bg-danger">HARMFUL</span>
                         <span>Score: {{ report.score }}</span>
                         <a href="{{ url_for('view_html', filename=report.file) }}" class="btn btn-outline-primary btn-sm">View</a>
                     </div>
-                    <div class="mt-2 text-muted">Main Issue: {{ report.issues[0] if report.issues else 'None' }}</div>
-                    <button class="btn btn-link btn-sm p-0 mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#details-{{ loop.index }}">Show Details</button>
-                    <div class="collapse" id="details-{{ loop.index }}">
-                        <ul class="mb-0">
-                            {% set details = report.details %}
-                            {% set lines = report.lines %}
-                            {% set max_len = details|length if details|length > lines|length else lines|length %}
-                            {% for i in range(max_len) %}
-                                <li>
-                                    {% if details|length > i %}<span class="text-danger">{{ details[i] }}</span>{% endif %}
-                                    {% if lines|length > i %}<div class="issue-line">{{ lines[i] }}</div>{% endif %}
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
+                    {% if report.score == 100 and (not report.issues or report.issues|length == 0) %}
+    <div class="alert alert-success mt-2 mb-0">This file is safe. No issues were found.</div>
+{% else %}
+    <div class="mt-2 text-muted">Main Issue: {{ report.issues[0] if report.issues else 'None' }}</div>
+    <button class="btn btn-link btn-sm p-0 mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#details-{{ loop.index }}">Show Details</button>
+    <div class="collapse" id="details-{{ loop.index }}">
+        <ul class="mb-0">
+            {% set details = report.details %}
+            {% set lines = report.lines %}
+            {% set max_len = details|length if details|length > lines|length else lines|length %}
+            {% for i in range(max_len) %}
+                <li>
+                    {% if details|length > i %}<span class="text-danger">{{ details[i] }}</span>{% endif %}
+                    {% if lines|length > i %}<div class="issue-line">{{ lines[i] }}</div>{% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
                 </div>
             </div>
             {% endfor %}
@@ -88,25 +92,28 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <span><b>{{ report.file|replace('v1/file/','') }}</b></span>
-                        <span class="badge bg-warning text-dark">COMPLEX</span>
                         <span>Score: {{ report.score }}</span>
                         <a href="{{ url_for('view_html', filename=report.file) }}" class="btn btn-outline-primary btn-sm">View</a>
                     </div>
-                    <div class="mt-2 text-muted">Main Issue: {{ report.issues[0] if report.issues else 'None' }}</div>
-                    <button class="btn btn-link btn-sm p-0 mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#details-{{ loop.index }}">Show Details</button>
-                    <div class="collapse" id="details-{{ loop.index }}">
-                        <ul class="mb-0">
-                            {% set details = report.details %}
-                            {% set lines = report.lines %}
-                            {% set max_len = details|length if details|length > lines|length else lines|length %}
-                            {% for i in range(max_len) %}
-                                <li>
-                                    {% if details|length > i %}<span class="text-danger">{{ details[i] }}</span>{% endif %}
-                                    {% if lines|length > i %}<div class="issue-line">{{ lines[i] }}</div>{% endif %}
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
+                    {% if report.score == 100 and (not report.issues or report.issues|length == 0) %}
+    <div class="alert alert-success mt-2 mb-0">This file is safe. No issues were found.</div>
+{% else %}
+    <div class="mt-2 text-muted">Main Issue: {{ report.issues[0] if report.issues else 'None' }}</div>
+    <button class="btn btn-link btn-sm p-0 mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#details-{{ loop.index }}">Show Details</button>
+    <div class="collapse" id="details-{{ loop.index }}">
+        <ul class="mb-0">
+            {% set details = report.details %}
+            {% set lines = report.lines %}
+            {% set max_len = details|length if details|length > lines|length else lines|length %}
+            {% for i in range(max_len) %}
+                <li>
+                    {% if details|length > i %}<span class="text-danger">{{ details[i] }}</span>{% endif %}
+                    {% if lines|length > i %}<div class="issue-line">{{ lines[i] }}</div>{% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
                 </div>
             </div>
             {% endfor %}
@@ -117,25 +124,28 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <span><b>{{ report.file|replace('v1/file/','') }}</b></span>
-                        <span class="badge bg-secondary">OTHER</span>
                         <span>Score: {{ report.score }}</span>
                         <a href="{{ url_for('view_html', filename=report.file) }}" class="btn btn-outline-primary btn-sm">View</a>
                     </div>
-                    <div class="mt-2 text-muted">Main Issue: {{ report.issues[0] if report.issues else 'None' }}</div>
-                    <button class="btn btn-link btn-sm p-0 mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#details-{{ loop.index }}">Show Details</button>
-                    <div class="collapse" id="details-{{ loop.index }}">
-                        <ul class="mb-0">
-                            {% set details = report.details %}
-                            {% set lines = report.lines %}
-                            {% set max_len = details|length if details|length > lines|length else lines|length %}
-                            {% for i in range(max_len) %}
-                                <li>
-                                    {% if details|length > i %}<span class="text-danger">{{ details[i] }}</span>{% endif %}
-                                    {% if lines|length > i %}<div class="issue-line">{{ lines[i] }}</div>{% endif %}
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
+                    {% if report.score == 100 and (not report.issues or report.issues|length == 0) %}
+    <div class="alert alert-success mt-2 mb-0">This file is safe. No issues were found.</div>
+{% else %}
+    <div class="mt-2 text-muted">Main Issue: {{ report.issues[0] if report.issues else 'None' }}</div>
+    <button class="btn btn-link btn-sm p-0 mt-1" type="button" data-bs-toggle="collapse" data-bs-target="#details-{{ loop.index }}">Show Details</button>
+    <div class="collapse" id="details-{{ loop.index }}">
+        <ul class="mb-0">
+            {% set details = report.details %}
+            {% set lines = report.lines %}
+            {% set max_len = details|length if details|length > lines|length else lines|length %}
+            {% for i in range(max_len) %}
+                <li>
+                    {% if details|length > i %}<span class="text-danger">{{ details[i] }}</span>{% endif %}
+                    {% if lines|length > i %}<div class="issue-line">{{ lines[i] }}</div>{% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
                 </div>
             </div>
             {% endfor %}

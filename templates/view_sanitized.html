@@ -13,6 +13,11 @@
         <p class="mb-0">This page contained potentially harmful content and has been sanitized for safe viewing.</p>
         <a href="/" class="btn btn-primary mt-3"><i class="fa-solid fa-arrow-left"></i> Back to Report</a>
     </div>
+    {% if has_clickables %}
+    <div class="alert alert-warning">
+        <i class="fa-solid fa-ban"></i> <strong>Notice:</strong> All clickable elements (links, buttons, forms, etc.) are visually present but have been disabled for your safety in this preview. Interactions will not work.
+    </div>
+    {% endif %}
     <div class="card mt-4">
         <div class="card-header bg-info text-white">
             <i class="fa-solid fa-eye"></i> Sanitized Page Preview
@@ -27,8 +32,42 @@
     const iframe = document.getElementById('sanitized-preview');
     const doc = iframe.contentDocument || iframe.contentWindow.document;
     doc.open();
-    doc.write(`{{ html|tojson|safe }}`);
+    doc.write(`{{ html|safe }}`);
     doc.close();
+    // Disable all click and submit events in the iframe
+    function disableIframeInteractions() {
+      const win = iframe.contentWindow;
+      const doc = iframe.contentDocument || win.document;
+      // Disable all links
+      doc.querySelectorAll('a').forEach(a => {
+        a.removeAttribute('href');
+        a.onclick = function(e) { e.preventDefault(); return false; };
+        a.style.pointerEvents = 'auto';
+        a.style.cursor = 'not-allowed';
+      });
+      // Disable all forms
+      doc.querySelectorAll('form').forEach(f => {
+        f.onsubmit = function(e) { e.preventDefault(); return false; };
+      });
+      // Disable all buttons and clickable inputs
+      doc.querySelectorAll('button, input[type="submit"], input[type="button"], input[type="reset"]').forEach(btn => {
+        btn.onclick = function(e) { e.preventDefault(); return false; };
+        btn.disabled = true;
+        btn.style.cursor = 'not-allowed';
+      });
+      // Inject script to disable navigation and click events
+      const script = doc.createElement('script');
+      script.textContent = `
+        window.addEventListener('load', function() {
+          window.addEventListener('click', function(e) { e.preventDefault(); return false; });
+          window.addEventListener('submit', function(e) { e.preventDefault(); return false; });
+          window.addEventListener('beforeunload', function(e) { e.preventDefault(); return false; });
+        });
+      `;
+      doc.body.appendChild(script);
+    }
+    // Wait for iframe content to load, then disable interactions
+    setTimeout(disableIframeInteractions, 100);
 </script>
 </body>
 </html>

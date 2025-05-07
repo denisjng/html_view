@@ -221,7 +221,31 @@ def remove_harmful_parts(html_content, issues):
     if 'suspicious_comment' in issues:
         for c in soup.find_all(string=lambda text: isinstance(text, Comment)):
             c.extract()
+    # After all removals, ensure we have a <body> and it's not empty
+    body = soup.body
+    if not body:
+        body = soup.new_tag('body')
+        soup.append(body)
+    if not any(tag for tag in body.contents if getattr(tag, 'name', None) or (str(tag).strip() and not isinstance(tag, Comment))):
+        placeholder = soup.new_tag('div')
+        placeholder['class'] = 'alert alert-info mt-4'
+        placeholder.string = 'This file contains no visible content after sanitization.'
+        body.append(placeholder)
+    # Ensure we have <html> and <head> and <title>
+    if not soup.find('html'):
+        html = soup.new_tag('html')
+        html.append(soup.head if soup.head else soup.new_tag('head'))
+        html.append(body)
+        soup = html
+    if not soup.head:
+        head = soup.new_tag('head')
+        soup.insert(0, head)
+    if not soup.head.find('title'):
+        title_tag = soup.new_tag('title')
+        title_tag.string = 'Sanitized Preview'
+        soup.head.append(title_tag)
     return str(soup)
+
 
 def extract_lines_with_issues(html_content, issues):
     """
@@ -292,6 +316,37 @@ def sanitize_html_bleach(html_content: str, mode: str = 'strict') -> str:
         return bleach.clean(html_content, tags=relaxed_tags, attributes=relaxed_attrs, strip=True)
 
 # --- Custom sanitizer for full-page safe rendering ---
+def sanitize_and_disable_clickables(html_content):
+    """
+    Removes scripts/objects and disables all clickables for UNSAFE HTML (sandboxed preview).
+    """
+    soup = BeautifulSoup(html_content, 'html.parser')
+    # Remove all <script>, <iframe>, <object>, <embed>, <applet>, <template>
+    for tag in soup.find_all(['script', 'iframe', 'object', 'embed', 'applet', 'template']):
+        tag.decompose()
+    # Remove dangerous attributes (event handlers, javascript:)
+    for tag in soup.find_all(True):
+        attrs_to_remove = [attr for attr in tag.attrs if attr.lower().startswith('on')]
+        for attr in attrs_to_remove:
+            del tag.attrs[attr]
+        for attr in ['href', 'src', 'action', 'style']:
+            if attr in tag.attrs and isinstance(tag[attr], str) and 'javascript:' in tag[attr].lower():
+                del tag.attrs[attr]
+    # Disable all clickable things (links, buttons, forms) by adding a data-disabled attribute
+    has_clickables = False
+    for tag in soup.find_all(['a', 'button', 'input', 'form', 'area']):
+        tag['data-disabled'] = 'true'
+        if tag.name == 'a':
+            tag['tabindex'] = '-1'
+            tag['onclick'] = 'return false;'
+            tag['href'] = tag.get('href', '#')
+        if tag.name == 'form':
+            tag['onsubmit'] = 'return false;'
+        if tag.name == 'button' or (tag.name == 'input' and tag.get('type') in ['submit', 'button', 'reset']):
+            tag['onclick'] = 'return false;'
+        has_clickables = True
+    return str(soup), has_clickables
+
 def fully_sanitize_html(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
     # Remove all <script>, <iframe>, <object>, <embed>, <applet>, <template>
@@ -477,9 +532,9 @@ def view_html(filename):
             cleaned, has_clickables = fully_sanitize_html(file_report['raw'])
             return render_template('view_cleaned.html', html=cleaned, filename=filename, has_clickables=has_clickables)
         else:
-            # Only allow the sandboxed preview (iframe)
-            cleaned = sanitize_html_bleach(file_report['raw'], mode='strict')
-            return render_template('view_sanitized.html', html=cleaned, reason=file_report['reason'], issues=file_report['issues'], details=file_report['details'], filename=filename)
+            # Only allow the sandboxed preview (iframe), but disable all clickables
+            cleaned, has_clickables = sanitize_and_disable_clickables(file_report['raw'])
+            return render_template('view_sanitized.html', html=cleaned, reason=file_report['reason'], issues=file_report['issues'], details=file_report['details'], filename=filename, has_clickables=has_clickables)
     # For other types, show as plain text or error
     if file_report['status'] == 'UNSAFE':
         if filetype == 'html':
