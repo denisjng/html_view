@@ -629,6 +629,92 @@ def dashboard():
     summary = test_html_files_and_summary()
     return render_template('index.html', summary=summary)
 
+import datetime
+import collections
+
+@app.route('/dashboard/stats')
+def dashboard_stats():
+    summary = test_html_files_and_summary()
+    # Gather stats
+    files = []
+    safe = low = medium = high = total = 0
+    scores = []
+    evolution = collections.defaultdict(list)
+    risk = collections.defaultdict(lambda: {'safe':0,'low':0,'medium':0,'high':0})
+    for report in summary:
+        file = report['file']
+        score = report['score']
+        status = report['status']
+        # Try to get file modification time
+        try:
+            mtime = os.path.getmtime(file)
+            date = datetime.datetime.fromtimestamp(mtime).strftime('%Y-%m-%d')
+        except Exception:
+            date = 'Unknown'
+        # Risk class
+        if score == 100:
+            safe += 1
+            risk[date]['safe'] += 1
+            risk_class = 'safe'
+        elif score >= 75:
+            low += 1
+            risk[date]['low'] += 1
+            risk_class = 'low'
+        elif score >= 50:
+            medium += 1
+            risk[date]['medium'] += 1
+            risk_class = 'medium'
+        else:
+            high += 1
+            risk[date]['high'] += 1
+            risk_class = 'high'
+        scores.append(score)
+        total += 1
+        # Extension and type
+        ext = os.path.splitext(file)[1].lower().replace('.', '')
+        filetype = detect_file_type(file)
+        files.append({'file': file, 'score': score, 'status': status, 'date': date, 'risk': risk_class, 'ext': ext, 'type': filetype})
+        evolution[date].append(score)
+    # Evolution: average score per date
+    evolution_dates = sorted(evolution.keys())
+    evolution_avgs = [sum(evolution[d])/len(evolution[d]) for d in evolution_dates]
+    # Risk distribution over time
+    risk_dates = sorted(risk.keys())
+    risk_safe = [risk[d]['safe'] for d in risk_dates]
+    risk_low = [risk[d]['low'] for d in risk_dates]
+    risk_medium = [risk[d]['medium'] for d in risk_dates]
+    risk_high = [risk[d]['high'] for d in risk_dates]
+    # Extension and type counts
+    ext_counts = {}
+    type_counts = {}
+    for f in files:
+        ext_counts[f['ext']] = ext_counts.get(f['ext'], 0) + 1
+        type_counts[f['type']] = type_counts.get(f['type'], 0) + 1
+    stats = {
+        'total': total,
+        'safe': safe,
+        'low': low,
+        'medium': medium,
+        'high': high,
+        'average': sum(scores)/len(scores) if scores else 0,
+        'files': files,
+        'evolution': {
+            'dates': evolution_dates,
+            'averages': evolution_avgs
+        },
+        'risk': {
+            'dates': risk_dates,
+            'safe': risk_safe,
+            'low': risk_low,
+            'medium': risk_medium,
+            'high': risk_high
+        },
+        'ext_counts': ext_counts,
+        'type_counts': type_counts
+    }
+    import json
+    return render_template('stats.html', stats_json=json.dumps(stats))
+
 @app.route('/v1/file/<path:pathfile>', methods=['GET'])
 def serve_html_file(pathfile):
     """
