@@ -10,7 +10,7 @@
 </head>
 <body class="bg-gray-50 min-h-screen">
 <!-- Universal Reader Banner with Back Button -->
-<div class="w-full bg-gradient-to-r from-blue-700 via-purple-600 to-indigo-700 py-6 shadow-lg mb-8">
+<div class="w-full bg-[#23004c] py-6 shadow-lg mb-8">
   <div class="max-w-6xl mx-auto flex flex-row items-center justify-between">
     <div class="flex flex-col items-start">
       <span class="text-4xl font-extrabold text-white tracking-wide drop-shadow-lg">Universal Reader</span>
@@ -108,7 +108,7 @@
                     <tr>
                         <th class="py-2 px-4 border-b">File</th>
                         <th class="py-2 px-4 border-b">Extension</th>
-                        <th class="py-2 px-4 border-b">Type</th>
+                        
                         <th class="py-2 px-4 border-b">Score</th>
                         <th class="py-2 px-4 border-b">Status</th>
                         <th class="py-2 px-4 border-b">Date</th>
@@ -140,7 +140,7 @@
       <div class="overflow-x-auto mt-6">
         <table class="min-w-full bg-white rounded-xl shadow">
           <thead>
-            <tr><th class="py-2 px-4 border-b">Type</th><th class="py-2 px-4 border-b">Count</th></tr>
+            <tr><th class="py-2 px-4 border-b">Count</th></tr>
           </thead>
           <tbody id="byTypeTableBody"></tbody>
         </table>
@@ -157,10 +157,10 @@ function showTab(tab) {
 showTab('overview');
 // Populate stats
 // Chart instances for live update
-let scoreEvolutionChart = null;
-let riskDistributionChart = null;
-let byExtChart = null;
-let byTypeChart = null;
+var scoreEvolutionChart = null;
+var riskDistributionChart = null;
+var byExtChart = null;
+var byTypeChart = null;
 
 function computeFilteredStats(files) {
     // Compute metrics for filtered files
@@ -214,7 +214,7 @@ function updateAllStats(filteredFiles) {
     tbody.innerHTML = '';
     filteredFiles.forEach(f => {
         let tr = document.createElement('tr');
-        tr.innerHTML = `<td class='py-2 px-4 border-b'>${f.file}</td><td class='py-2 px-4 border-b'>${f.ext}</td><td class='py-2 px-4 border-b'>${f.type}</td><td class='py-2 px-4 border-b'>${f.score}</td><td class='py-2 px-4 border-b'>${f.status}</td><td class='py-2 px-4 border-b'>${f.date}</td><td class='py-2 px-4 border-b'>${f.risk}</td>`;
+        tr.innerHTML = `<td class='py-2 px-4 border-b'>${f.file}</td><td class='py-2 px-4 border-b'>${f.ext}</td><td class='py-2 px-4 border-b'>${f.score}</td><td class='py-2 px-4 border-b'>${f.status}</td><td class='py-2 px-4 border-b'>${f.date}</td><td class='py-2 px-4 border-b'>${f.risk}</td>`;
         tbody.appendChild(tr);
     });
     // By Extension
@@ -230,7 +230,7 @@ function updateAllStats(filteredFiles) {
     typeBody.innerHTML = '';
     Object.keys(stats.type_counts).forEach(type => {
         let tr = document.createElement('tr');
-        tr.innerHTML = `<td class='py-2 px-4 border-b'>${type}</td><td class='py-2 px-4 border-b'>${stats.type_counts[type]}</td>`;
+        tr.innerHTML = `<td class='py-2 px-4 border-b'>${stats.type_counts[type]}</td>`;
         typeBody.appendChild(tr);
     });
     // Score Evolution Chart
@@ -364,19 +364,8 @@ function populateFilterDropdowns() {
 }
 
 function applyFilters() {
-    let ext = document.getElementById('filter-ext').value;
-    let type = document.getElementById('filter-type').value;
-    let risk = document.getElementById('filter-risk').value;
-    let score = parseInt(document.getElementById('filter-score').value, 10);
-    let date = document.getElementById('filter-date').value;
-    let filtered = statsData.files.filter(f => {
-        return (!ext || f.ext === ext)
-            && (!type || f.type === type)
-            && (!risk || f.risk === risk)
-            && (isNaN(score) || f.score >= score)
-            && (!date || f.date === date);
-    });
-    populateStats(filtered);
+    let filtered = getFilteredFiles();
+    updateAllStats(filtered);
 }
 function resetFilters() {
     document.getElementById('filter-ext').value = '';
@@ -384,7 +373,7 @@ function resetFilters() {
     document.getElementById('filter-risk').value = '';
     document.getElementById('filter-score').value = '';
     document.getElementById('filter-date').value = '';
-    populateStats();
+    updateAllStats(statsData.files);
 }
 
 populateStats();
