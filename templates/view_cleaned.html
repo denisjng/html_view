@@ -6,26 +6,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="max-w-2xl mx-auto py-8 px-4">
-        <a href="/" class="inline-flex items-center mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition font-semibold text-sm"><i data-feather="arrow-left" class="w-4 h-4 mr-2"></i> Back to Dashboard</a>
-        <div class="alert alert-success d-flex align-items-center mb-3" role="alert" style="font-size:1rem;">
-            <i data-feather="shield" class="me-2"></i>
-            <div>This page has been sanitized and is considered safe for normal viewing. All dangerous elements have been removed.</div>
+<body class="bg-gray-50 min-vh-100">
+    <div class="position-fixed top-0 start-0 w-100 z-3 bg-white shadow-sm border-bottom d-flex flex-row align-items-center px-2 px-md-4 py-2 gap-2" style="min-height:64px;">
+        <a href="/" class="d-inline-flex align-items-center px-3 py-2 bg-primary text-white rounded shadow-sm fw-semibold text-sm me-3" style="text-decoration:none;"><i data-feather="arrow-left" class="me-2"></i> Back to Dashboard</a>
+        {% if risk_level == 'high' or risk_level == 'harmful' or unsafe_content_removed %}
+        <div class="alert alert-danger d-flex align-items-center shadow-sm mb-0 py-2 px-3 me-2" role="alert" style="font-size:1rem;">
+            <i data-feather="alert-triangle" class="me-2"></i>
+            <span class="fw-bold">Unsafe Content Removed:</span> <span class="ms-2">This page contained potentially harmful content and has been sanitized for safe viewing.</span>
         </div>
-        {% if has_clickables %}
-        <div class="alert alert-warning d-flex align-items-center mb-3" role="alert" style="font-size:1rem;">
-            <i data-feather="slash" class="me-2"></i>
-            <span class="fw-bold me-1">Notice:</span> All clickable elements (links, buttons, forms, etc.) are visually present but have been disabled for your safety in this preview. Interactions will not work.
+        {% else %}
+        <div class="alert alert-success d-flex align-items-center shadow-sm mb-0 py-2 px-3 me-2" role="alert" style="font-size:1rem;">
+            <i data-feather="shield" class="me-2"></i>
+            <span class="fw-bold">Sanitized:</span> <span class="ms-2">This page has been sanitized and is considered safe for normal viewing. All dangerous elements have been removed.</span>
         </div>
         {% endif %}
-        <div class="mt-8 rounded-xl shadow bg-white">
-            <div class="px-6 py-3 bg-green-600 text-white rounded-t-xl flex items-center font-semibold"><i data-feather="eye" class="w-5 h-5 mr-2"></i> Sanitized Full Page Preview</div>
-            <div class="px-6 py-4">
-                <!-- Render sanitized HTML as a real page (styles applied) -->
-                {{ html|safe }}
-            </div>
+        {% if has_clickables %}
+        <div class="alert alert-warning d-flex align-items-center shadow-sm mb-0 py-2 px-3" role="alert" style="font-size:1rem;">
+            <i data-feather="slash" class="me-2"></i>
+            <span class="fw-bold">Notice:</span> <span class="ms-2">All clickable elements (links, buttons, forms, etc.) are visually present but have been disabled for your safety in this preview. Interactions will not work.</span>
         </div>
+        {% endif %}
+    </div>
+    <main class="w-100 h-100 min-vh-100 d-flex flex-column" style="padding-top:76px;">
+        <div class="flex-grow-1 w-100 h-100 d-flex flex-column">
+            <div class="bg-success bg-gradient text-white px-4 py-2 d-flex align-items-center gap-2" style="border-top-left-radius:1rem;border-top-right-radius:1rem;">
+                <i data-feather="eye" class="me-2"></i>
+                <span class="fw-semibold">Sanitized Full Page Preview</span>
+            </div>
+            <iframe id="sanitized-preview" sandbox="allow-same-origin" class="flex-grow-1 w-100 border-0" style="min-height:calc(100vh - 110px);height:100%;background:#fff;"></iframe>
+        </div>
+    </main>
     </div>
     <!-- Feather Icons: Local dynamic loader -->
     <script>

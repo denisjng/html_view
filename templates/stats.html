@@ -8,7 +8,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>body { background: #f4f7fa; }</style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-50 min-vh-100">
+    <div class="container-fluid px-2 px-md-4 py-4 py-md-5 d-flex flex-column align-items-center justify-content-center w-100">
 <!-- Universal Reader Banner with Back Button -->
 <div class="w-full bg-[#23004c] py-6 shadow-lg mb-8">
   <div class="max-w-6xl mx-auto flex flex-row items-center justify-between">
@@ -415,5 +416,6 @@ const typeLabels = Object.keys(statsData.type_counts);
 const typeData = Object.values(statsData.type_counts);
 new Chart(ctxType, { type: 'doughnut', data: { labels: typeLabels, datasets: [{ data: typeData, backgroundColor: ['#6366F1','#F59E42','#10B981','#F43F5E','#FBBF24','#3B82F6','#EAB308','#A21CAF'] }]}});
 </script>
+    </div>
 </body>
 </html>

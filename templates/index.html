@@ -25,7 +25,8 @@
       body { background: #f4f7fa; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-50 min-vh-100">
+    <div class="container-fluid px-2 px-md-4 py-4 py-md-5 d-flex flex-column align-items-center justify-content-center w-100">
 <!-- Universal Reader Banner (no back button) -->
   <div class="w-full bg-[#23004c] py-6 shadow-lg mb-8">
     <div class="max-w-6xl mx-auto flex flex-col items-center justify-center">
@@ -40,7 +41,7 @@
     </div>
     <input type="text" id="fileSearch" class="block w-full max-w-lg mx-auto mb-6 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400 focus:outline-none" placeholder="Search files..." onkeyup="filterFiles()">
     <div class="flex space-x-2 justify-center mb-6">
-  <button id="sortScoreBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 font-semibold transition">Sort by Score</button>
+  <button id="sortScoreBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 font-semibold transition flex items-center">Sort by Score <span id="sortScoreArrow" class="ml-2"><svg xmlns="http://www.w3.org/2000/svg" class="inline w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg></span></button>
       <button class="tab-btn px-4 py-2 rounded-t-lg font-medium text-gray-600 bg-white hover:bg-blue-100 focus:bg-blue-200 transition" id="safe-tab" onclick="showTab('safe')">Safe</button>
       <button class="tab-btn px-4 py-2 rounded-t-lg font-medium text-gray-600 bg-white hover:bg-yellow-100 focus:bg-yellow-200 transition" id="low-tab" onclick="showTab('low')">Low Risk</button>
       <button class="tab-btn px-4 py-2 rounded-t-lg font-medium text-gray-600 bg-white hover:bg-orange-100 focus:bg-orange-200 transition" id="medium-tab" onclick="showTab('medium')">Medium Risk</button>
@@ -305,6 +306,15 @@ function filterFiles() {
 // Sort button logic
 (function(){
   let sortDescending = true;
+  const sortArrow = document.getElementById('sortScoreArrow');
+  function updateSortArrow() {
+    if (sortDescending) {
+      sortArrow.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="inline w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>`; // Down arrow
+    } else {
+      sortArrow.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="inline w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>`; // Up arrow
+    }
+  }
+  updateSortArrow();
   document.getElementById('sortScoreBtn').addEventListener('click', function() {
     const visibleTabs = ['safe','low','medium','high'];
     let activeTab = visibleTabs.find(t => document.getElementById(t).style.display !== 'none');
@@ -321,9 +331,11 @@ function filterFiles() {
     });
     cards.forEach(card => grid.appendChild(card));
     sortDescending = !sortDescending;
+  updateSortArrow();
   });
 })();
 </script>
+    </div>
 </body>
 </html>
 

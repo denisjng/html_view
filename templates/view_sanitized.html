@@ -8,33 +8,45 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/feather-icons"></script>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="max-w-2xl mx-auto py-8 px-4">
-        <a href="/" class="inline-flex items-center mb-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition font-semibold text-sm"><i data-feather="arrow-left" class="w-4 h-4 mr-2"></i> Back to Dashboard</a>
+<body class="bg-gray-50 min-vh-100">
+    <div class="position-fixed top-0 start-0 w-100 z-3 bg-white shadow-sm border-bottom d-flex flex-row align-items-center px-2 px-md-4 py-2 gap-2" style="min-height:64px;">
+        <a href="/" class="d-inline-flex align-items-center px-3 py-2 bg-primary text-white rounded shadow-sm fw-semibold text-sm me-3" style="text-decoration:none;"><i data-feather="arrow-left" class="me-2"></i> Back to Dashboard</a>
         {% if risk_level == 'high' or risk_level == 'harmful' or unsafe_content_removed %}
-        <div class="alert alert-danger d-flex align-items-center mb-3" role="alert" style="font-size:1rem;">
+        <div class="alert alert-danger d-flex align-items-center shadow-sm mb-0 py-2 px-3 me-2" role="alert" style="font-size:1rem;">
             <i data-feather="alert-triangle" class="me-2"></i>
-            <div><strong>Unsafe Content Removed:</strong> This page contained potentially harmful content and has been sanitized for safe viewing.</div>
+            <span class="fw-bold">Unsafe Content Removed:</span> <span class="ms-2">This page contained potentially harmful content and has been sanitized for safe viewing.</span>
         </div>
         {% else %}
-        <div class="alert alert-success d-flex align-items-center mb-3" role="alert" style="font-size:1rem;">
+        <div class="alert alert-success d-flex align-items-center shadow-sm mb-0 py-2 px-3 me-2" role="alert" style="font-size:1rem;">
             <i data-feather="shield" class="me-2"></i>
-            <div>This page has been sanitized and is considered safe for normal viewing. All dangerous elements have been removed.</div>
+            <span class="fw-bold">Sanitized:</span> <span class="ms-2">This page has been sanitized and is considered safe for normal viewing. All dangerous elements have been removed.</span>
         </div>
         {% endif %}
         {% if has_clickables %}
-        <div class="alert alert-warning d-flex align-items-center mb-3" role="alert" style="font-size:1rem;">
+        <div class="alert alert-warning d-flex align-items-center shadow-sm mb-0 py-2 px-3" role="alert" style="font-size:1rem;">
             <i data-feather="slash" class="me-2"></i>
-            <span class="fw-bold me-1">Notice:</span> All clickable elements (links, buttons, forms, etc.) are visually present but have been disabled for your safety in this preview. Interactions will not work.
+            <span class="fw-bold">Notice:</span> <span class="ms-2">All clickable elements (links, buttons, forms, etc.) are visually present but have been disabled for your safety in this preview. Interactions will not work.</span>
         </div>
         {% endif %}
-    <div class="mt-8 rounded-xl shadow bg-white">
-        <div class="px-6 py-3 bg-green-600 text-white rounded-t-xl flex items-center font-semibold"><i data-feather="eye" class="w-5 h-5 mr-2"></i> Sanitized Full Page Preview</div>
-        <div class="px-6 py-4">
-            <iframe id="sanitized-preview" sandbox="allow-same-origin" style="width:100%;min-height:400px;border:1px solid #ddd;"></iframe>
-        </div>
     </div>
+    <main class="w-100 h-100 min-vh-100 d-flex flex-column" style="padding-top:76px;">
+        <div class="flex-grow-1 w-100 h-100 d-flex flex-column">
+            <div class="bg-success bg-gradient text-white px-4 py-2 d-flex align-items-center gap-2" style="border-top-left-radius:1rem;border-top-right-radius:1rem;">
+                <i data-feather="eye" class="me-2"></i>
+                <span class="fw-semibold">Sanitized Full Page Preview</span>
+            </div>
+            <iframe id="sanitized-preview" sandbox="allow-same-origin allow-scripts" class="flex-grow-1 w-100 border-0" style="min-height:calc(100vh - 110px);height:100%;background:#fff;"></iframe>
+        </div>
+    </main>
     <script>
+        // Prevent unwanted navigation warnings
+        // Remove all beforeunload handlers and listeners
+        window.onbeforeunload = null;
+        window.removeEventListener('beforeunload', function(){});
+        // Defensive: remove any listeners added by libraries
+        if (window.jQuery && window.jQuery.event) {
+          window.jQuery(window).off('beforeunload');
+        }
         // Insert sanitized HTML into the iframe safely and disable interactions
         const iframe = document.getElementById('sanitized-preview');
         function disableIframeInteractions() {

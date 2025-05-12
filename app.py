@@ -329,9 +329,17 @@ def sanitize_and_disable_clickables(html_content):
         attrs_to_remove = [attr for attr in tag.attrs if attr.lower().startswith('on')]
         for attr in attrs_to_remove:
             del tag.attrs[attr]
-        for attr in ['href', 'src', 'action', 'style']:
-            if attr in tag.attrs and isinstance(tag[attr], str) and 'javascript:' in tag[attr].lower():
-                del tag.attrs[attr]
+        # Remove javascript: or data: in href, src, action
+        for attr in ['href', 'src', 'action']:
+            if attr in tag.attrs and isinstance(tag[attr], str):
+                val = tag[attr].lower().strip()
+                if val.startswith('javascript:') or val.startswith('data:'):
+                    del tag.attrs[attr]
+        # Remove style attributes containing expression() or javascript:
+        if 'style' in tag.attrs and isinstance(tag['style'], str):
+            style_val = tag['style'].lower()
+            if 'expression(' in style_val or 'javascript:' in style_val:
+                del tag.attrs['style']
     # Disable all clickable things (links, buttons, forms) by adding a data-disabled attribute
     has_clickables = False
     for tag in soup.find_all(['a', 'button', 'input', 'form', 'area']):
@@ -362,9 +370,17 @@ def fully_sanitize_html(html_content):
         attrs_to_remove = [attr for attr in tag.attrs if attr.lower().startswith('on')]
         for attr in attrs_to_remove:
             del tag.attrs[attr]
-        for attr in ['href', 'src', 'action', 'style']:
-            if attr in tag.attrs and isinstance(tag[attr], str) and 'javascript:' in tag[attr].lower():
-                del tag.attrs[attr]
+        # Remove javascript: or data: in href, src, action
+        for attr in ['href', 'src', 'action']:
+            if attr in tag.attrs and isinstance(tag[attr], str):
+                val = tag[attr].lower().strip()
+                if val.startswith('javascript:') or val.startswith('data:'):
+                    del tag.attrs[attr]
+        # Remove style attributes containing expression() or javascript:
+        if 'style' in tag.attrs and isinstance(tag['style'], str):
+            style_val = tag['style'].lower()
+            if 'expression(' in style_val or 'javascript:' in style_val:
+                del tag.attrs['style']
     # Remove <meta http-equiv="refresh">
     for meta in soup.find_all('meta'):
         if meta.get('http-equiv', '').lower() == 'refresh':
@@ -526,15 +542,19 @@ def view_html(filename):
         return render_custom_error("Access Denied", file_report['reason'], 403, suggestion="Contact admin if you believe this is a mistake.", support_url="mailto:support@example.com")
     # New logic: allow normal sanitized view if score >= 50, else sandboxed preview only
     if filetype == 'html':
-        score = file_report['score']
-        if score >= 50:
-            # Render sanitized HTML as a normal page (styles applied, all dangerous elements removed)
-            cleaned, has_clickables = fully_sanitize_html(file_report['raw'])
-            return render_template('view_cleaned.html', html=cleaned, filename=filename, has_clickables=has_clickables)
-        else:
-            # Only allow the sandboxed preview (iframe), but disable all clickables
-            cleaned, has_clickables = sanitize_and_disable_clickables(file_report['raw'])
-            return render_template('view_sanitized.html', html=cleaned, reason=file_report['reason'], issues=file_report['issues'], details=file_report['details'], filename=filename, has_clickables=has_clickables)
+        # Always use the full-page sanitized preview for all HTML files
+        cleaned, has_clickables = fully_sanitize_html(file_report['raw'])
+        return render_template(
+            'view_sanitized.html',
+            html=cleaned,
+            reason=file_report.get('reason'),
+            issues=file_report.get('issues'),
+            details=file_report.get('details'),
+            filename=filename,
+            has_clickables=has_clickables,
+            risk_level=file_report.get('risk', ''),
+            score=file_report.get('score', 100)
+        )
     # For other types, show as plain text or error
     if file_report['status'] == 'UNSAFE':
         if filetype == 'html':
