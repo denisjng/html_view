@@ -36,9 +36,7 @@
     <div class="tab-content" id="caseTabsContent">
         <div class="tab-pane fade show active" id="safe" role="tabpanel">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {% set found_safe = false %}
             {% for report in summary if report.score == 100 %}
-            {% set found_safe = true %}
             <div class="bg-white rounded-xl shadow p-5 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-2">
                     <span class="font-semibold text-gray-700">{{ report.file|replace('v1/file/','') }}</span>
@@ -47,17 +45,14 @@
                 <a href="{{ url_for('view_html', filename=report.file) }}" class="inline-block mt-2 px-4 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition text-sm font-medium text-center">View</a>
                 <div class="mt-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded flex items-center"><i data-feather="check-circle" class="w-5 h-5 mr-2"></i> This file is safe. No issues were found.</div>
             </div>
-            {% endfor %}
-            {% if not found_safe %}
+            {% else %}
             <div class="col-span-2 text-center text-gray-400 py-8">No safe files found.</div>
-            {% endif %}
+            {% endfor %}
             </div>
         </div>
         <div class="tab-pane fade" id="low" role="tabpanel">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {% set found_low = false %}
             {% for report in summary if report.score < 100 and report.score >= 75 %}
-            {% set found_low = true %}
             <div class="bg-white rounded-xl shadow p-5 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-2">
                     <span class="font-semibold text-gray-700">{{ report.file|replace('v1/file/','') }}</span>
@@ -80,17 +75,14 @@
                     </ul>
                 </div>
             </div>
-            {% endfor %}
-            {% if not found_low %}
+            {% else %}
             <div class="col-span-2 text-center text-gray-400 py-8">No low risk files found.</div>
-            {% endif %}
+            {% endfor %}
             </div>
         </div>
         <div class="tab-pane fade" id="medium" role="tabpanel">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {% set found_medium = false %}
             {% for report in summary if report.score < 75 and report.score >= 50 %}
-            {% set found_medium = true %}
             <div class="bg-white rounded-xl shadow p-5 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-2">
                     <span class="font-semibold text-gray-700">{{ report.file|replace('v1/file/','') }}</span>
@@ -113,17 +105,14 @@
                     </ul>
                 </div>
             </div>
-            {% endfor %}
-            {% if not found_medium %}
+            {% else %}
             <div class="col-span-2 text-center text-gray-400 py-8">No medium risk files found.</div>
-            {% endif %}
+            {% endfor %}
             </div>
         </div>
         <div class="tab-pane fade" id="high" role="tabpanel">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {% set found_high = false %}
             {% for report in summary if report.score < 50 %}
-            {% set found_high = true %}
             <div class="bg-white rounded-xl shadow p-5 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-2">
                     <span class="font-semibold text-gray-700">{{ report.file|replace('v1/file/','') }}</span>
@@ -146,10 +135,9 @@
                     </ul>
                 </div>
             </div>
-            {% endfor %}
-            {% if not found_high %}
+            {% else %}
             <div class="col-span-2 text-center text-gray-400 py-8">No high risk files found.</div>
-            {% endif %}
+            {% endfor %}
             </div>
         </div>
         <div class="tab-pane fade" id="harmful" role="tabpanel">
