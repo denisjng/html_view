@@ -6,8 +6,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Heroicons CDN -->
-    <script src="https://unpkg.com/feather-icons"></script>
+    <!-- Feather Icons: Local dynamic loader -->
+    <script>
+      function loadFeatherAndReplace() {
+        if (typeof feather !== 'undefined') {
+          feather.replace();
+        } else {
+          var script = document.createElement('script');
+          script.src = '/static/js/feather.min.js';
+          script.onload = function() {
+            if (typeof feather !== 'undefined') feather.replace();
+          };
+          document.head.appendChild(script);
+        }
+      }
+    </script>
     <style>
       body { background: #f4f7fa; }
     </style>
@@ -179,9 +192,8 @@
         </div>
         <div class="tab-pane fade" id="complex" role="tabpanel">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {% set found_complex = false %}
+            {# Complex files tab: Show all files in the 'complex/' folder, or empty state if none #}
             {% for report in summary if 'complex/' in report.file %}
-            {% set found_complex = true %}
             <div class="bg-white rounded-xl shadow p-5 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-2">
                     <span class="font-semibold text-gray-700">{{ report.file|replace('v1/file/','') }}</span>
@@ -214,13 +226,15 @@
                     </div>
                 {% endif %}
             </div>
+            {% else %}
+            <div class="col-span-2 text-center text-gray-400 py-8">No complex files found.</div>
             {% endfor %}
+            </div>
         </div>
         <div class="tab-pane fade" id="other" role="tabpanel">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {% set found_other = false %}
+            {# Other files tab: Show all files in the 'other/' folder, or empty state if none #}
             {% for report in summary if 'other/' in report.file %}
-            {% set found_other = true %}
             <div class="bg-white rounded-xl shadow p-5 flex flex-col justify-between">
                 <div class="flex justify-between items-center mb-2">
                     <span class="font-semibold text-gray-700">{{ report.file|replace('v1/file/','') }}</span>
@@ -228,6 +242,9 @@
                 </div>
                 <a href="{{ url_for('view_html', filename=report.file) }}" class="inline-block mt-2 px-4 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 transition text-sm font-medium text-center">View</a>
                 {% if report.score == 100 and (not report.issues or report.issues|length == 0) %}
+                    <div class="mt-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded flex items-center">
+                        <i data-feather="check-circle" class="w-5 h-5 mr-2"></i> This file is safe. No issues were found.
+                    </div>
                     <div class="mt-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded flex items-center"><i data-feather="check-circle" class="w-5 h-5 mr-2"></i> This file is safe. No issues were found.</div>
                 {% else %}
                     <div class="mt-4 p-3 bg-gray-100 border border-gray-300 text-gray-800 rounded flex items-center"><i data-feather="alert-triangle" class="w-5 h-5 mr-2"></i> Main Issue: {{ report.issues[0] if report.issues else 'None' }}</div>
@@ -274,7 +291,10 @@ function filterFiles() {
   // Set default tab
   showTab('safe');
   // Feather icons
-  feather.replace();
+  // Only run feather.replace() if feather is loaded
+  if (typeof feather !== 'undefined') {
+    feather.replace();
+  }
   // Show Details toggles
   document.querySelectorAll('button[data-target]').forEach(btn => {
     btn.onclick = function() {

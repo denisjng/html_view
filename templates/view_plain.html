@@ -1,6 +1,15 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="container py-4">
+    {% if sanitized or unsafe_content_removed %}
+    <div class="alert alert-warning text-center">
+        <h4 class="mb-2"><i class="fa-solid fa-shield-halved"></i> Unsafe Content Removed</h4>
+        <div>This page contained potentially harmful content and has been sanitized for safe viewing.</div>
+    </div>
+    <div class="alert alert-info text-center">
+        <strong>Notice:</strong> All clickable elements (links, buttons, forms, etc.) are visually present but have been disabled for your safety in this preview. Interactions will not work.
+    </div>
+    {% endif %}
     <div class="alert alert-info text-center">
         <h2><i class="fa-solid fa-file-lines"></i> {{ filetype }} File Preview</h2>
         <p class="mb-2">File: <code>{{ filename }}</code></p>
