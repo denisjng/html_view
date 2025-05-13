@@ -47,6 +47,25 @@
         if (window.jQuery && window.jQuery.event) {
           window.jQuery(window).off('beforeunload');
         }
+        // Block all dialog popups for this page
+        window.alert = function(){};
+        window.confirm = function(){ return true; };
+        window.prompt = function(){ return null; };
+        window.onbeforeunload = null;
+        window.addEventListener('beforeunload', function(e) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          return undefined;
+        }, true);
+        // Also block dialogs in the parent if possible
+        if (window.parent && window.parent !== window) {
+          try {
+            window.parent.alert = function(){};
+            window.parent.confirm = function(){ return true; };
+            window.parent.prompt = function(){ return null; };
+            window.parent.onbeforeunload = null;
+          } catch (e) {}
+        }
         // Insert sanitized HTML into the iframe safely and disable interactions
         const iframe = document.getElementById('sanitized-preview');
         function disableIframeInteractions() {
