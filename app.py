@@ -539,8 +539,8 @@ def download_sanitized(filename, mode):
     # For xml, json, csv, txt: just return as txt
     return send_file(io.BytesIO(raw.encode('utf-8')), mimetype='text/plain', as_attachment=True, download_name=f"{os.path.basename(filepath)}.sanitized.txt")
 
-# --- Update /view/<filename> to support all file types ---
-@app.route('/view/<path:filename>')
+# --- Update <filename> to support all file types ---
+@app.route('/<path:filename>')
 def view_html(filename):
     """
     Views the file.
