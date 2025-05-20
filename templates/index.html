@@ -228,18 +228,21 @@
         </div>
     </div>
 </div>
-<script>
-function filterFiles() {
-    var input = document.getElementById('fileSearch');
-    var filter = input.value.toLowerCase();
-    var cards = document.getElementsByClassName('file-card');
-    for (var i = 0; i < cards.length; i++) {
-        var card = cards[i];
-        var text = card.innerText.toLowerCase();
-        card.style.display = text.indexOf(filter) > -1 ? '' : 'none';
-    }
-}
-</script>
+    <script>
+        function filterFiles() {
+            const searchTerm = document.getElementById('fileSearch').value.toLowerCase();
+            const files = document.querySelectorAll('.tab-pane .bg-white');
+            
+            files.forEach(file => {
+                const fileName = file.querySelector('.font-semibold').textContent.toLowerCase();
+                if (fileName.includes(searchTerm)) {
+                    file.style.display = '';
+                } else {
+                    file.style.display = 'none';
+                }
+            });
+        }
+    </script>
 <script>
   // Simple tab logic
   function showTab(tab) {
