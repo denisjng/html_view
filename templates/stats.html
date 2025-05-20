@@ -32,12 +32,7 @@
                         <option value="">All</option>
                     </select>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600">Type</label>
-                    <select id="filter-type" class="border rounded px-2 py-1">
-                        <option value="">All</option>
-                    </select>
-                </div>
+
                 <div>
                     <label class="block text-xs font-semibold text-gray-600">Risk</label>
                     <select id="filter-risk" class="border rounded px-2 py-1">
@@ -67,7 +62,6 @@
                 <button class="tab-btn px-4 py-2 rounded-t-lg font-medium text-gray-600 bg-white hover:bg-yellow-100 focus:bg-yellow-200 transition" onclick="showTab('risk')">Risk Distribution</button>
                 <button class="tab-btn px-4 py-2 rounded-t-lg font-medium text-gray-600 bg-white hover:bg-pink-100 focus:bg-pink-200 transition" onclick="showTab('byext')">By Extension</button>
                 <button class="tab-btn px-4 py-2 rounded-t-lg font-medium text-gray-600 bg-white hover:bg-purple-100 focus:bg-purple-200 transition" onclick="showTab('details')">Detailed Table</button>
-                <button class="tab-btn px-4 py-2 rounded-t-lg font-medium text-gray-600 bg-white hover:bg-indigo-100 focus:bg-indigo-200 transition" onclick="showTab('bytype')">By Type</button>
             </div>
 
             <!-- Tab Panes -->
@@ -108,6 +102,25 @@
                 <h2 class="font-semibold text-2xl text-center mb-4 text-yellow-700">Risk Distribution Over Time</h2>
                 <canvas id="riskDistributionChart" height="120"></canvas>
             </div>
+            <div id="byext" class="tab-pane hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow p-4">
+                        <h3 class="text-sm font-medium text-pink-700 mb-2">File Extensions</h3>
+                        <canvas id="byExtChart" height="20"></canvas>
+                    </div>
+                    <div class="bg-white rounded-xl shadow p-4">
+                        <h3 class="text-sm font-medium text-pink-700 mb-2">Extension Counts</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full">
+                                <thead>
+                                    <tr><th class="py-1 px-2 border-b text-xs">Extension</th><th class="py-1 px-2 border-b text-xs">Count</th></tr>
+                                </thead>
+                                <tbody id="byExtTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div id="details" class="tab-pane hidden">
                 <h2 class="font-semibold text-2xl text-center mb-4 text-purple-700">Detailed File Table</h2>
                 <div class="overflow-x-auto">
@@ -126,30 +139,7 @@
                     </table>
                 </div>
             </div>
-            <div id="byext" class="tab-pane hidden">
-                <h2 class="font-semibold text-2xl text-center mb-4 text-pink-700">Stats by Extension</h2>
-                <canvas id="byExtChart" height="120"></canvas>
-                <div class="overflow-x-auto mt-6">
-                    <table class="min-w-full bg-white rounded-xl shadow">
-                        <thead>
-                            <tr><th class="py-2 px-4 border-b">Extension</th><th class="py-2 px-4 border-b">Count</th></tr>
-                        </thead>
-                        <tbody id="byExtTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-            <div id="bytype" class="tab-pane hidden">
-                <h2 class="font-semibold text-2xl text-center mb-4 text-indigo-700">Stats by Type</h2>
-                <canvas id="byTypeChart" height="120"></canvas>
-                <div class="overflow-x-auto mt-6">
-                    <table class="min-w-full bg-white rounded-xl shadow">
-                        <thead>
-                            <tr><th class="py-2 px-4 border-b">Count</th></tr>
-                        </thead>
-                        <tbody id="byTypeTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
+
         </div>
 
         <!-- Dump JSON safely for the JS below -->
@@ -167,12 +157,11 @@
         let scoreEvolutionChart = null;
         let riskDistributionChart = null;
         let byExtChart = null;
-        let byTypeChart = null;
 
         function computeFilteredStats(files) {
             let safe = 0, low = 0, medium = 0, high = 0, sum = 0;
             let evolution = {}, risk = {};
-            let ext_counts = {}, type_counts = {};
+            let ext_counts = {};
 
             files.forEach(f => {
                 sum += f.score;
@@ -181,171 +170,59 @@
                 else if (f.risk === 'medium') medium++;
                 else if (f.risk === 'high')   high++;
 
-                // Evolution
-                evolution[f.date] = evolution[f.date] || [];
-                evolution[f.date].push(f.score);
+                // Count by extension
+                ext_counts[f.ext] = (ext_counts[f.ext] || 0) + 1;
 
-                // Risk by date
-                risk[f.date] = risk[f.date] || { safe:0, low:0, medium:0, high:0 };
-                risk[f.date][f.risk]++;
-
-                // Counts
-                ext_counts[f.ext]   = (ext_counts[f.ext]   || 0) + 1;
-                type_counts[f.type] = (type_counts[f.type] || 0) + 1;
+                // Track evolution
+                const date = f.date.slice(0, 7); // YYYY-MM
+                evolution[date] = (evolution[date] || 0) + 1;
+                // Track risk distribution
+                risk[date] = risk[date] || { safe: 0, low: 0, medium: 0, high: 0 };
+                risk[date][f.risk]++;
             });
-
-            const dates = Object.keys(evolution).sort();
-            const evolution_avgs = dates.map(d => {
-                const arr = evolution[d];
-                return arr.reduce((a,b)=>a+b,0) / arr.length;
-            });
-
-            const risk_dates = Object.keys(risk).sort();
-            const risk_safe   = risk_dates.map(d=>risk[d].safe);
-            const risk_low    = risk_dates.map(d=>risk[d].low);
-            const risk_med    = risk_dates.map(d=>risk[d].medium);
-            const risk_high   = risk_dates.map(d=>risk[d].high);
 
             return {
                 total: files.length,
-                safe, low, medium, high,
-                average: files.length ? sum/files.length : 0,
-                evolution: { dates, averages: evolution_avgs },
-                risk:      { dates: risk_dates, safe: risk_safe, low: risk_low, medium: risk_med, high: risk_high },
-                ext_counts,
-                type_counts
+                safe,
+                low,
+                medium,
+                high,
+                average: files.length ? Math.round(sum / files.length) : 0,
+                evolution,
+                risk,
+                ext_counts
             };
         }
 
         function updateAllStats(filteredFiles) {
             const stats = computeFilteredStats(filteredFiles);
+            
+            // Update overview stats
+            document.getElementById('stat-total').textContent = stats.total;
+            document.getElementById('stat-safe').textContent = stats.safe;
+            document.getElementById('stat-low').textContent = stats.low;
+            document.getElementById('stat-medium').textContent = stats.medium;
+            document.getElementById('stat-high').textContent = stats.high;
+            document.getElementById('stat-average').textContent = stats.average;
 
-            // Overview
-            document.getElementById('stat-total').textContent   = stats.total;
-            document.getElementById('stat-safe').textContent    = stats.safe;
-            document.getElementById('stat-low').textContent     = stats.low;
-            document.getElementById('stat-medium').textContent  = stats.medium;
-            document.getElementById('stat-high').textContent    = stats.high;
-            document.getElementById('stat-average').textContent = stats.average.toFixed(2);
+            // Update charts
+            updateScoreEvolutionChart(stats.evolution);
+            updateRiskDistributionChart(stats.risk);
+            updateByExtChart(stats.ext_counts);
 
-            // Details table
-            const tbody = document.getElementById('detailsTableBody');
-            tbody.innerHTML = '';
-            filteredFiles.forEach(f => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="py-2 px-4 border-b">${f.file}</td>
-                    <td class="py-2 px-4 border-b">${f.ext}</td>
-                    <td class="py-2 px-4 border-b">${f.score}</td>
-                    <td class="py-2 px-4 border-b">${f.status}</td>
-                    <td class="py-2 px-4 border-b">${f.date}</td>
-                    <td class="py-2 px-4 border-b">${f.risk}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            // By Extension table
-            const extBody = document.getElementById('byExtTableBody');
-            extBody.innerHTML = '';
-            Object.keys(stats.ext_counts).forEach(ext => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="py-2 px-4 border-b">.${ext}</td><td class="py-2 px-4 border-b">${stats.ext_counts[ext]}</td>`;
-                extBody.appendChild(tr);
-            });
-
-            // By Type table
-            const typeBody = document.getElementById('byTypeTableBody');
-            typeBody.innerHTML = '';
-            Object.keys(stats.type_counts).forEach(t => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="py-2 px-4 border-b">${stats.type_counts[t]}</td>`;
-                typeBody.appendChild(tr);
-            });
-
-            // Score Evolution chart
-            if (scoreEvolutionChart) scoreEvolutionChart.destroy();
-            scoreEvolutionChart = new Chart(
-                document.getElementById('scoreEvolutionChart').getContext('2d'),
-                {
-                    type: 'line',
-                    data: {
-                        labels: stats.evolution.dates,
-                        datasets: [{
-                            label: 'Average Score',
-                            data: stats.evolution.averages,
-                            fill: false,
-                            borderColor: 'rgb(99, 102, 241)',
-                            tension: 0.1
-                        }]
-                    },
-                    options: { responsive: true }
-                }
-            );
-
-            // Risk Distribution chart
-            if (riskDistributionChart) riskDistributionChart.destroy();
-            riskDistributionChart = new Chart(
-                document.getElementById('riskDistributionChart').getContext('2d'),
-                {
-                    type: 'bar',
-                    data: {
-                        labels: stats.risk.dates,
-                        datasets: [
-                            { label: 'Safe',   data: stats.risk.safe,   backgroundColor: 'rgb(34,197,94,0.7)' },
-                            { label: 'Low',    data: stats.risk.low,    backgroundColor: 'rgb(253,224,71,0.7)' },
-                            { label: 'Medium', data: stats.risk.medium, backgroundColor: 'rgb(251,191,36,0.7)' },
-                            { label: 'High',   data: stats.risk.high,   backgroundColor: 'rgb(239,68,68,0.7)' }
-                        ]
-                    },
-                    options: { responsive: true, plugins: { legend: { position: 'top' } }}
-                }
-            );
-
-            // By Extension pie
-            if (byExtChart) byExtChart.destroy();
-            byExtChart = new Chart(
-                document.getElementById('byExtChart').getContext('2d'),
-                {
-                    type: 'pie',
-                    data: {
-                        labels: Object.keys(stats.ext_counts).map(e => '.' + e),
-                        datasets: [{
-                            data: Object.values(stats.ext_counts),
-                            backgroundColor: ['#6366F1','#F59E42','#10B981','#F43F5E','#FBBF24','#3B82F6','#EAB308','#A21CAF']
-                        }]
-                    },
-                    options: { responsive: true }
-                }
-            );
-
-            // By Type doughnut
-            if (byTypeChart) byTypeChart.destroy();
-            byTypeChart = new Chart(
-                document.getElementById('byTypeChart').getContext('2d'),
-                {
-                    type: 'doughnut',
-                    data: {
-                        labels: Object.keys(stats.type_counts),
-                        datasets: [{
-                            data: Object.values(stats.type_counts),
-                            backgroundColor: ['#6366F1','#F59E42','#10B981','#F43F5E','#FBBF24','#3B82F6','#EAB308','#A21CAF']
-                        }]
-                    },
-                    options: { responsive: true }
-                }
-            );
+            // Update tables
+            updateDetailsTable(filteredFiles);
+            updateByExtTable(stats.ext_counts);
         }
 
         function getFilteredFiles() {
             const ext   = document.getElementById('filter-ext').value;
-            const type  = document.getElementById('filter-type').value;
             const risk  = document.getElementById('filter-risk').value;
             const score = parseInt(document.getElementById('filter-score').value, 10);
             const date  = document.getElementById('filter-date').value;
 
             return statsData.files.filter(f =>
                 (!ext   || f.ext   === ext) &&
-                (!type  || f.type  === type) &&
                 (!risk  || f.risk  === risk) &&
                 (isNaN(score) || f.score >= score) &&
                 (!date  || f.date  === date)
@@ -366,27 +243,17 @@
         }
 
         function populateFilterDropdowns() {
-            const extSet  = new Set();
-            const typeSet = new Set();
+            const extSet = new Set();
             statsData.files.forEach(f => {
-                if (f.ext)  extSet.add(f.ext);
-                if (f.type) typeSet.add(f.type);
+                if (f.ext) extSet.add(f.ext);
             });
 
-            const extSel  = document.getElementById('filter-ext');
-            const typeSel = document.getElementById('filter-type');
-
+            const extSel = document.getElementById('filter-ext');
             extSet.forEach(e => {
                 const opt = document.createElement('option');
                 opt.value = e;
                 opt.textContent = '.' + e;
                 extSel.appendChild(opt);
-            });
-            typeSet.forEach(t => {
-                const opt = document.createElement('option');
-                opt.value = t;
-                opt.textContent = t;
-                typeSel.appendChild(opt);
             });
         }
 
@@ -394,6 +261,158 @@
             document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
             document.getElementById(tab).classList.remove('hidden');
             updateAllStats(getFilteredFiles());
+        }
+
+        // Define chart update functions
+        function updateScoreEvolutionChart(evolution) {
+            if (!scoreEvolutionChart) {
+                scoreEvolutionChart = new Chart(document.getElementById('scoreEvolutionChart'), {
+                    type: 'line',
+                    data: {
+                        labels: Object.keys(evolution),
+                        datasets: [{
+                            label: 'Files per Month',
+                            data: Object.values(evolution),
+                            fill: false,
+                            borderColor: '#6366f1',
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'File Count Evolution'
+                            }
+                        }
+                    }
+                });
+            } else {
+                scoreEvolutionChart.data.labels = Object.keys(evolution);
+                scoreEvolutionChart.data.datasets[0].data = Object.values(evolution);
+                scoreEvolutionChart.update();
+            }
+        }
+
+        function updateRiskDistributionChart(risk) {
+            if (!riskDistributionChart) {
+                riskDistributionChart = new Chart(document.getElementById('riskDistributionChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(risk),
+                        datasets: [
+                            { 
+                                label: 'Safe',
+                                data: Object.values(risk).map(r => r.safe),
+                                backgroundColor: '#10b981'
+                            },
+                            { 
+                                label: 'Low',
+                                data: Object.values(risk).map(r => r.low),
+                                backgroundColor: '#f59e42'
+                            },
+                            { 
+                                label: 'Medium',
+                                data: Object.values(risk).map(r => r.medium),
+                                backgroundColor: '#fbbf24'
+                            },
+                            { 
+                                label: 'High',
+                                data: Object.values(risk).map(r => r.high),
+                                backgroundColor: '#ef4444'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Risk Distribution Over Time'
+                            }
+                        }
+                    }
+                });
+            } else {
+                riskDistributionChart.data.labels = Object.keys(risk);
+                const values = Object.values(risk);
+                riskDistributionChart.data.datasets[0].data = values.map(r => r.safe);
+                riskDistributionChart.data.datasets[1].data = values.map(r => r.low);
+                riskDistributionChart.data.datasets[2].data = values.map(r => r.medium);
+                riskDistributionChart.data.datasets[3].data = values.map(r => r.high);
+                riskDistributionChart.update();
+            }
+        }
+
+        function updateByExtChart(ext_counts) {
+            if (!byExtChart) {
+                byExtChart = new Chart(document.getElementById('byExtChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(ext_counts).map(e => '.' + e),
+                        datasets: [{
+                            data: Object.values(ext_counts),
+                            backgroundColor: [
+                                '#6366f1', '#f59e42', '#10b981', '#f43f5e',
+                                '#fbbf24', '#3b82f6', '#eab308', '#a21caf'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        layout: {
+                            padding: 0
+                        },
+                        cutout: '80%'
+                    }
+                });
+            } else {
+                byExtChart.data.labels = Object.keys(ext_counts).map(e => '.' + e);
+                byExtChart.data.datasets[0].data = Object.values(ext_counts);
+                byExtChart.update();
+            }
+        }
+
+        function updateDetailsTable(files) {
+            const tbody = document.getElementById('detailsTableBody');
+            tbody.innerHTML = '';
+            files.forEach(f => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-2 px-4 border-b">${f.file}</td>
+                    <td class="py-2 px-4 border-b">.${f.ext}</td>
+                    <td class="py-2 px-4 border-b">${f.score}</td>
+                    <td class="py-2 px-4 border-b">${f.status}</td>
+                    <td class="py-2 px-4 border-b">${f.date}</td>
+                    <td class="py-2 px-4 border-b">${f.risk}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateByExtTable(ext_counts) {
+            const tbody = document.getElementById('byExtTableBody');
+            tbody.innerHTML = '';
+            Object.entries(ext_counts).forEach(([ext, count]) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-2 px-4 border-b">.${ext}</td>
+                    <td class="py-2 px-4 border-b">${count}</td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
 
         // INITIAL LOAD
