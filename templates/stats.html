@@ -468,6 +468,9 @@
                     <td class="py-2 px-4 border-b">${f.status}</td>
                     <td class="py-2 px-4 border-b">${f.date}</td>
                     <td class="py-2 px-4 border-b">${f.risk}</td>
+                    <td class="py-2 px-4 border-b">
+                        <a href="/v1/file/${encodeURIComponent(f.file.split('/').pop())}" class="text-blue-600 hover:text-blue-800">View</a>
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });

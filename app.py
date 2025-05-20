@@ -568,17 +568,20 @@ def view_html(filename):
             risk_level=file_report.get('risk', ''),
             score=file_report.get('score', 100)
         )
-    # For other types, show as plain text or error
-    if file_report['status'] == 'UNSAFE':
-        if filetype == 'html':
-            cleaned = sanitize_html_bleach(file_report['raw'], mode='strict')
-            return render_template('view_sanitized.html', html=cleaned, reason=file_report['reason'], issues=file_report['issues'], details=file_report['details'], filename=filename)
-        # For other types, show as plain text
-        return render_template('view_error.html', reason="Viewing of unsafe non-HTML files is not supported.", title="Unsafe File"), 403
-    # SAFE
-    # HTML: render, others: pretty print
+    # For all HTML files, use sanitized view
     if filetype == 'html':
-        return Response(file_report['raw'], mimetype='text/html')
+        cleaned, has_clickables = fully_sanitize_html(file_report['raw'])
+        return render_template(
+            'view_sanitized.html',
+            html=cleaned,
+            reason=file_report.get('reason'),
+            issues=file_report.get('issues'),
+            details=file_report.get('details'),
+            filename=filename,
+            has_clickables=has_clickables,
+            risk_level=file_report.get('risk', ''),
+            score=file_report.get('score', 100)
+        )
     elif filetype == 'xml':
         try:
             tree = ET.ElementTree(ET.fromstring(file_report['raw']))
