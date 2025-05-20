@@ -124,20 +124,22 @@
                 </div>
             </div>
             <div id="details" class="tab-pane hidden">
-                <h2 class="font-semibold text-2xl text-center mb-4 text-purple-700">Detailed File Table</h2>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full bg-white rounded-xl shadow">
+                <h2 class="font-semibold text-2xl text-center mb-6 text-blue-800">Detailed Table</h2>
+                <div class="bg-white rounded-xl shadow overflow-hidden">
+                    <table class="w-full">
                         <thead>
                             <tr>
-                                <th class="py-2 px-4 border-b">File</th>
-                                <th class="py-2 px-4 border-b">Extension</th>
-                                <th class="py-2 px-4 border-b">Score</th>
-                                <th class="py-2 px-4 border-b">Status</th>
-                                <th class="py-2 px-4 border-b">Date</th>
-                                <th class="py-2 px-4 border-b">Risk</th>
+                                <th class="py-3 px-4 bg-gray-50 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100" onclick="sortTable('file')">File</th>
+                                <th class="py-3 px-4 bg-gray-50 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100" onclick="sortTable('ext')">Extension</th>
+                                <th class="py-3 px-4 bg-gray-50 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100" onclick="sortTable('score')">Score</th>
+                                <th class="py-3 px-4 bg-gray-50 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100" onclick="sortTable('status')">Status</th>
+                                <th class="py-3 px-4 bg-gray-50 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100" onclick="sortTable('date')">Date</th>
+                                <th class="py-3 px-4 bg-gray-50 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100" onclick="sortTable('risk')">Risk</th>
+                                <th class="py-3 px-4 bg-gray-50 text-left text-sm font-semibold text-gray-900">Action</th>
                             </tr>
                         </thead>
-                        <tbody id="detailsTableBody"></tbody>
+                        <tbody id="detailsTableBody">
+                        </tbody>
                     </table>
                 </div>
             </div>
@@ -456,6 +458,65 @@
             }
         }
 
+        // Column sorting state
+        let sortState = {
+            column: '',
+            direction: 'asc'
+        };
+
+        // Sort functions for each column
+        const sortFunctions = {
+            file: (a, b) => a.file.localeCompare(b.file),
+            ext: (a, b) => a.ext.localeCompare(b.ext),
+            score: (a, b) => a.score - b.score,
+            status: (a, b) => a.status.localeCompare(b.status),
+            date: (a, b) => a.date.localeCompare(b.date),
+            risk: (a, b) => a.risk.localeCompare(b.risk)
+        };
+
+        // Sort the files array
+        function sortFiles(files, column) {
+            if (column === sortState.column) {
+                sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortState.column = column;
+                sortState.direction = 'asc';
+            }
+
+            const sortedFiles = [...files];
+            sortedFiles.sort(sortFunctions[column]);
+            if (sortState.direction === 'desc') {
+                sortedFiles.reverse();
+            }
+            return sortedFiles;
+        }
+
+        // Update header arrows
+        function updateHeaderArrows() {
+            const headers = document.querySelectorAll('#detailsTable th');
+            headers.forEach(header => {
+                const arrow = header.querySelector('.sort-arrow');
+                if (arrow) {
+                    arrow.remove();
+                }
+                if (header.textContent.toLowerCase().trim() === sortState.column) {
+                    const arrow = document.createElement('span');
+                    arrow.className = 'sort-arrow ml-1';
+                    arrow.innerHTML = sortState.direction === 'asc' ? '↑' : '↓';
+                    arrow.style.color = '#6366f1'; // Blue color for better visibility
+                    header.appendChild(arrow);
+                }
+            });
+        }
+
+        // Sort table when header is clicked
+        function sortTable(column) {
+            const filteredFiles = getFilteredFiles();
+            const sortedFiles = sortFiles(filteredFiles, column);
+            updateDetailsTable(sortedFiles);
+            updateHeaderArrows();
+        }
+
         function updateDetailsTable(files) {
             const tbody = document.getElementById('detailsTableBody');
             tbody.innerHTML = '';
@@ -493,6 +554,7 @@
         populateFilterDropdowns();
         updateAllStats(statsData.files);
         showTab('overview');
+        setupHeaderClicks();
         </script>
     </div>
 </body>
