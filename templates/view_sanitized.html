@@ -10,7 +10,6 @@
 </head>
 <body class="bg-gray-50 min-vh-100">
     <div class="position-fixed top-0 start-0 w-100 z-3 bg-white shadow-sm border-bottom d-flex flex-row align-items-center px-2 px-md-4 py-2 gap-2" style="min-height:64px;">
-        <a href="/" class="d-inline-flex align-items-center px-3 py-2 bg-primary text-white rounded shadow-sm fw-semibold text-sm me-3" style="text-decoration:none;"><i data-feather="arrow-left" class="me-2"></i> Back to Dashboard</a>
         {% if risk_level == 'high' or risk_level == 'harmful' or unsafe_content_removed %}
         <div class="alert alert-danger d-flex align-items-center shadow-sm mb-0 py-2 px-3 me-2" role="alert" style="font-size:1rem;">
             <i data-feather="alert-triangle" class="me-2"></i>
