@@ -553,34 +553,16 @@ def view_html(filename):
         return render_custom_error("Not Found", "File not found in report list.", 404)
     if file_report['status'] in ('BLOCKED', 'ERROR', 'SKIPPED'):
         return render_custom_error("Access Denied", file_report['reason'], 403, suggestion="Contact admin if you believe this is a mistake.", support_url="mailto:support@example.com")
-    # New logic: allow normal sanitized view if score >= 50, else sandboxed preview only
-    if filetype == 'html':
-        # Always use the full-page sanitized preview for all HTML files
+    # Always use the full-page sanitized preview for all HTML files
+    if filename.lower().endswith('.html'):
         cleaned, has_clickables = fully_sanitize_html(file_report['raw'])
         return render_template(
             'view_sanitized.html',
             html=cleaned,
-            reason=file_report.get('reason'),
-            issues=file_report.get('issues'),
-            details=file_report.get('details'),
-            filename=filename,
             has_clickables=has_clickables,
-            risk_level=file_report.get('risk', ''),
-            score=file_report.get('score', 100)
-        )
-    # For all HTML files, use sanitized view
-    if filetype == 'html':
-        cleaned, has_clickables = fully_sanitize_html(file_report['raw'])
-        return render_template(
-            'view_sanitized.html',
-            html=cleaned,
-            reason=file_report.get('reason'),
-            issues=file_report.get('issues'),
-            details=file_report.get('details'),
             filename=filename,
-            has_clickables=has_clickables,
-            risk_level=file_report.get('risk', ''),
-            score=file_report.get('score', 100)
+            risk_level='unknown',
+            score=100
         )
     elif filetype == 'xml':
         try:
@@ -607,7 +589,28 @@ def view_html(filename):
 def direct_sanitized_view(filename):
     """
     Direct access to sanitized view of a file in v1/file.
+    Always uses the fully sanitized view for HTML files.
     """
+    filepath = os.path.join('v1', 'file', filename)
+    if not os.path.exists(filepath):
+        return render_custom_error("File Not Found", "The requested file does not exist.", 404)
+    
+    with open(filepath, encoding='utf-8', errors='replace') as f:
+        raw_content = f.read()
+    
+    filetype = detect_file_type(filepath)
+    if filetype == 'html':
+        cleaned, has_clickables = fully_sanitize_html(raw_content)
+        return render_template(
+            'view_sanitized.html',
+            html=cleaned,
+            filename=filename,
+            has_clickables=has_clickables,
+            risk_level='unknown',
+            score=100
+        )
+    
+    # For non-HTML files, fall back to view_html
     return view_html(f'v1/file/{filename}')
 
 # --- Optimize and refactor test_html_files_and_summary ---
