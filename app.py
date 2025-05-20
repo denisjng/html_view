@@ -663,7 +663,7 @@ def home():
     """
     return redirect(url_for('dashboard'))
 
-@app.route('/dashboard')
+@app.route('/v2/dashboard')
 def dashboard():
     summary = test_html_files_and_summary()
     return render_template('index.html', summary=summary)
@@ -671,8 +671,11 @@ def dashboard():
 import datetime
 import collections
 
-@app.route('/dashboard/stats')
+@app.route('/v2/dashboard/stats')
 def dashboard_stats():
+    """
+    Dashboard statistics page with detailed analytics.
+    """
     summary = test_html_files_and_summary()
     # Gather stats
     files = []
