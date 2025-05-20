@@ -96,7 +96,9 @@
             </div>
             <div id="evolution" class="tab-pane hidden">
                 <h2 class="font-semibold text-2xl text-center mb-4 text-green-700">Score Evolution Over Time</h2>
-                <canvas id="scoreEvolutionChart" height="120"></canvas>
+                <div class="bg-white rounded-xl shadow p-6">
+                    <canvas id="scoreEvolutionChart" height="300"></canvas>
+                </div>
             </div>
             <div id="risk" class="tab-pane hidden">
                 <h2 class="font-semibold text-2xl text-center mb-4 text-yellow-700">Risk Distribution Over Time</h2>
@@ -174,11 +176,18 @@
                 ext_counts[f.ext] = (ext_counts[f.ext] || 0) + 1;
 
                 // Track evolution
-                const date = f.date.slice(0, 7); // YYYY-MM
-                evolution[date] = (evolution[date] || 0) + 1;
+                const date = f.date; // Use full date YYYY-MM-DD
+                evolution[date] = (evolution[date] || []).concat(f.score);
                 // Track risk distribution
                 risk[date] = risk[date] || { safe: 0, low: 0, medium: 0, high: 0 };
                 risk[date][f.risk]++;
+            });
+
+            // Calculate averages for evolution
+            const evolution_dates = Object.keys(evolution).sort();
+            const evolution_avgs = evolution_dates.map(date => {
+                const scores = evolution[date];
+                return scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
             });
 
             return {
@@ -188,7 +197,10 @@
                 medium,
                 high,
                 average: files.length ? Math.round(sum / files.length) : 0,
-                evolution,
+                evolution: {
+                    dates: evolution_dates,
+                    averages: evolution_avgs
+                },
                 risk,
                 ext_counts
             };
@@ -269,31 +281,90 @@
                 scoreEvolutionChart = new Chart(document.getElementById('scoreEvolutionChart'), {
                     type: 'line',
                     data: {
-                        labels: Object.keys(evolution),
+                        labels: evolution.dates,
                         datasets: [{
-                            label: 'Files per Month',
-                            data: Object.values(evolution),
+                            label: 'Average Score',
+                            data: evolution.averages,
                             fill: false,
                             borderColor: '#6366f1',
-                            tension: 0.1
+                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#6366f1',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
                         }]
                     },
                     options: {
                         responsive: true,
+                        maintainAspectRatio: false,
+                        layout: {
+                            padding: {
+                                left: 20,
+                                right: 20,
+                                top: 20,
+                                bottom: 20
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    stepSize: 10,
+                                    font: {
+                                        size: 12
+                                    }
+                                },
+                                grid: {
+                                    color: '#e5e7eb',
+                                    tickColor: '#d1d5db'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    font: {
+                                        size: 12
+                                    },
+                                    autoSkip: true,
+                                    maxTicksLimit: 10
+                                },
+                                grid: {
+                                    color: '#e5e7eb',
+                                    tickColor: '#d1d5db'
+                                }
+                            }
+                        },
                         plugins: {
                             legend: {
                                 position: 'top',
+                                labels: {
+                                    font: {
+                                        size: 12
+                                    }
+                                }
                             },
                             title: {
                                 display: true,
-                                text: 'File Count Evolution'
+                                text: 'Average Security Score Evolution',
+                                font: {
+                                    size: 14
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Score: ' + context.parsed.y.toFixed(1);
+                                    }
+                                }
                             }
                         }
                     }
                 });
             } else {
-                scoreEvolutionChart.data.labels = Object.keys(evolution);
-                scoreEvolutionChart.data.datasets[0].data = Object.values(evolution);
+                scoreEvolutionChart.data.labels = evolution.dates;
+                scoreEvolutionChart.data.datasets[0].data = evolution.averages;
                 scoreEvolutionChart.update();
             }
         }

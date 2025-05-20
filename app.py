@@ -708,7 +708,7 @@ def dashboard_stats():
         filetype = detect_file_type(file)
         files.append({'file': file, 'score': score, 'status': status, 'date': date, 'risk': risk_class, 'ext': ext, 'type': filetype})
         evolution[date].append(score)
-    # Evolution: average score per date
+    # Evolution: average score per day
     evolution_dates = sorted(evolution.keys())
     evolution_avgs = [sum(evolution[d])/len(evolution[d]) for d in evolution_dates]
     # Risk distribution over time
