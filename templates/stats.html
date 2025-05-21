@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Stats</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>body { background: #f4f7fa; }</style>
+</head>
+<body class="bg-gray-50 min-vh-100">
+    <div class="container-fluid px-2 px-md-4 py-4 py-md-5 d-flex flex-column align-items-center justify-content-center w-100">
+        <!-- Universal Reader Banner with Back Button -->
+        <div class="w-full bg-[#23004c] py-6 shadow-lg mb-8">
+            <div class="max-w-6xl mx-auto flex flex-row items-center justify-between">
+                <div class="flex flex-col items-start">
+                    <span class="text-4xl font-extrabold text-white tracking-wide drop-shadow-lg">Universal Reader</span>
+                    <span class="text-lg text-indigo-100 mt-2 font-medium tracking-wider">Admin Dashboard</span>
+                </div>
+                <a href="/v2/dashboard" class="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 font-semibold transition ml-8">&larr; Back to Dashboard</a>
+            </div>
+        </div>
+
+        <div class="max-w-6xl mx-auto py-8 px-4">
+            <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Statistics & Analytics</h1>
+
+            <!-- Advanced Filters -->
+            <div class="bg-white rounded-xl shadow p-5 mb-6 flex flex-col md:flex-row md:items-center md:space-x-6 space-y-2 md:space-y-0">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600">Extension</label>
+                    <select id="filter-ext" class="border rounded px-2 py-1">
+                        <option value="">All</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600">Risk</label>
+                    <select id="filter-risk" class="border rounded px-2 py-1">
+                        <option value="">All</option>
+                        <option value="safe">Safe</option>
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600">Score ≥</label>
+                    <input id="filter-score" type="number" min="0" max="100" class="border rounded px-2 py-1 w-20" placeholder="0">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600">Date</label>
+                    <input id="filter-date" type="date" class="border rounded px-2 py-1">
+                </div>
+                <button onclick="applyFilters()" class="px-4 py-2 bg-purple-600 text-white rounded-lg shadow hover:bg-purple-700 font-semibold transition mt-2 md:mt-0">Apply Filters</button>
+                <button onclick="resetFilters()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg shadow hover:bg-gray-300 font-semibold transition mt-2 md:mt-0">Reset</button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex space-x-2 justify-center mb-6">
+                <button class="tab-btn px-4 py-2 rounded-t-lg font-medium text-gray-600 bg-white hover:bg-blue-100 focus:bg-blue-200 transition" onclick="showTab('overview')">Overview</button>
+                <button class="tab-btn px-4 py-2 rounded-t-lg font-medium text-gray-600 bg-white hover:bg-green-100 focus:bg-green-200 transition" onclick="showTab('evolution')">Score Evolution</button>
+                <button class="tab-btn px-4 py-2 rounded-t-lg font-medium text-gray-600 bg-white hover:bg-yellow-100 focus:bg-yellow-200 transition" onclick="showTab('risk')">Risk Distribution</button>
+                <button class="tab-btn px-4 py-2 rounded-t-lg font-medium text-gray-600 bg-white hover:bg-pink-100 focus:bg-pink-200 transition" onclick="showTab('byext')">By Extension</button>
+                <button class="tab-btn px-4 py-2 rounded-t-lg font-medium text-gray-600 bg-white hover:bg-purple-100 focus:bg-purple-200 transition" onclick="showTab('details')">Detailed Table</button>
+            </div>
+
+            <!-- Tab Panes -->
+            <div id="overview" class="tab-pane">
+                <h2 class="font-semibold text-2xl text-center mb-6 text-blue-800">Overview</h2>
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow p-5 text-center">
+                        <div class="text-2xl font-bold text-blue-600" id="stat-total">0</div>
+                        <div class="text-gray-600">Total Files</div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow p-5 text-center">
+                        <div class="text-2xl font-bold text-green-600" id="stat-safe">0</div>
+                        <div class="text-gray-600">Safe Files</div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow p-5 text-center">
+                        <div class="text-2xl font-bold text-yellow-600" id="stat-low">0</div>
+                        <div class="text-gray-600">Low Risk</div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow p-5 text-center">
+                        <div class="text-2xl font-bold text-orange-500" id="stat-medium">0</div>
+                        <div class="text-gray-600">Medium Risk</div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow p-5 text-center">
+                        <div class="text-2xl font-bold text-red-600" id="stat-high">0</div>
+                        <div class="text-gray-600">High Risk</div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow p-5 mb-8">
+                    <h2 class="font-semibold text-lg mb-2">Average Score</h2>
+                    <div class="text-3xl text-center font-bold text-purple-700" id="stat-average">0</div>
+                </div>
+            </div>
+            <div id="evolution" class="tab-pane hidden">
+                <h2 class="font-semibold text-2xl text-center mb-4 text-green-700">Score Evolution Over Time</h2>
+                <div class="bg-white rounded-xl shadow p-6">
+                    <canvas id="scoreEvolutionChart" height="300"></canvas>
+                </div>
+            </div>
+            <div id="risk" class="tab-pane hidden">
+                <h2 class="font-semibold text-2xl text-center mb-4 text-yellow-700">Risk Distribution Over Time</h2>
+                <canvas id="riskDistributionChart" height="120"></canvas>
+            </div>
+            <div id="byext" class="tab-pane hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-xl shadow p-4">
+                        <h3 class="text-sm font-medium text-pink-700 mb-2">File Extensions</h3>
+                        <canvas id="byExtChart" height="20"></canvas>
+                    </div>
+                    <div class="bg-white rounded-xl shadow p-4">
+                        <h3 class="text-sm font-medium text-pink-700 mb-2">Extension Counts</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full">
+                                <thead>
+                                    <tr><th class="py-1 px-2 border-b text-xs">Extension</th><th class="py-1 px-2 border-b text-xs">Count</th></tr>
+                                </thead>
+                                <tbody id="byExtTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="details" class="tab-pane hidden">
+                <h2 class="font-semibold text-2xl text-center mb-6 text-blue-800">Detailed Table</h2>
+                <div class="bg-white rounded-xl shadow overflow-hidden">
+                    <table class="w-full">
+                        <thead>
+                            <tr>
+                                <th class="py-3 px-4 bg-gray-50 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100" onclick="sortTable('file')">File</th>
+                                <th class="py-3 px-4 bg-gray-50 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100" onclick="sortTable('ext')">Extension</th>
+                                <th class="py-3 px-4 bg-gray-50 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100" onclick="sortTable('score')">Score</th>
+                                <th class="py-3 px-4 bg-gray-50 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100" onclick="sortTable('status')">Status</th>
+                                <th class="py-3 px-4 bg-gray-50 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100" onclick="sortTable('date')">Date</th>
+                                <th class="py-3 px-4 bg-gray-50 text-left text-sm font-semibold text-gray-900 cursor-pointer hover:bg-gray-100" onclick="sortTable('risk')">Risk</th>
+                                <th class="py-3 px-4 bg-gray-50 text-left text-sm font-semibold text-gray-900">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailsTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Dump JSON safely for the JS below -->
+        <script id="stats-json" type="application/json">
+            {{ stats_json|safe }}
+        </script>
+
+        <script>
+        // Parse the injected JSON
+        const statsData = JSON.parse(
+            document.getElementById('stats-json').textContent
+        );
+
+        // Chart instances
+        let scoreEvolutionChart = null;
+        let riskDistributionChart = null;
+        let byExtChart = null;
+
+        function computeFilteredStats(files) {
+            let safe = 0, low = 0, medium = 0, high = 0, sum = 0;
+            let evolution = {}, risk = {};
+            let ext_counts = {};
+
+            files.forEach(f => {
+                sum += f.score;
+                if      (f.risk === 'safe')   safe++;
+                else if (f.risk === 'low')    low++;
+                else if (f.risk === 'medium') medium++;
+                else if (f.risk === 'high')   high++;
+
+                // Count by extension
+                ext_counts[f.ext] = (ext_counts[f.ext] || 0) + 1;
+
+                // Track evolution
+                const date = f.date; // Use full date YYYY-MM-DD
+                evolution[date] = (evolution[date] || []).concat(f.score);
+                // Track risk distribution
+                risk[date] = risk[date] || { safe: 0, low: 0, medium: 0, high: 0 };
+                risk[date][f.risk]++;
+            });
+
+            // Calculate averages for evolution
+            const evolution_dates = Object.keys(evolution).sort();
+            const evolution_avgs = evolution_dates.map(date => {
+                const scores = evolution[date];
+                return scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+            });
+
+            return {
+                total: files.length,
+                safe,
+                low,
+                medium,
+                high,
+                average: files.length ? Math.round(sum / files.length) : 0,
+                evolution: {
+                    dates: evolution_dates,
+                    averages: evolution_avgs
+                },
+                risk,
+                ext_counts
+            };
+        }
+
+        function updateAllStats(filteredFiles) {
+            const stats = computeFilteredStats(filteredFiles);
+            
+            // Update overview stats
+            document.getElementById('stat-total').textContent = stats.total;
+            document.getElementById('stat-safe').textContent = stats.safe;
+            document.getElementById('stat-low').textContent = stats.low;
+            document.getElementById('stat-medium').textContent = stats.medium;
+            document.getElementById('stat-high').textContent = stats.high;
+            document.getElementById('stat-average').textContent = stats.average;
+
+            // Update charts
+            updateScoreEvolutionChart(stats.evolution);
+            updateRiskDistributionChart(stats.risk);
+            updateByExtChart(stats.ext_counts);
+
+            // Update tables
+            updateDetailsTable(filteredFiles);
+            updateByExtTable(stats.ext_counts);
+        }
+
+        function getFilteredFiles() {
+            const ext   = document.getElementById('filter-ext').value;
+            const risk  = document.getElementById('filter-risk').value;
+            const score = parseInt(document.getElementById('filter-score').value, 10);
+            const date  = document.getElementById('filter-date').value;
+
+            return statsData.files.filter(f =>
+                (!ext   || f.ext   === ext) &&
+                (!risk  || f.risk  === risk) &&
+                (isNaN(score) || f.score >= score) &&
+                (!date  || f.date  === date)
+            );
+        }
+
+        function applyFilters() {
+            updateAllStats(getFilteredFiles());
+        }
+
+        function resetFilters() {
+            document.getElementById('filter-ext').value   = '';
+            document.getElementById('filter-type').value  = '';
+            document.getElementById('filter-risk').value  = '';
+            document.getElementById('filter-score').value = '';
+            document.getElementById('filter-date').value  = '';
+            updateAllStats(statsData.files);
+        }
+
+        function populateFilterDropdowns() {
+            const extSet = new Set();
+            statsData.files.forEach(f => {
+                if (f.ext) extSet.add(f.ext);
+            });
+
+            const extSel = document.getElementById('filter-ext');
+            extSet.forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e;
+                opt.textContent = '.' + e;
+                extSel.appendChild(opt);
+            });
+        }
+
+        function showTab(tab) {
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+            document.getElementById(tab).classList.remove('hidden');
+            updateAllStats(getFilteredFiles());
+        }
+
+        // Define chart update functions
+        function updateScoreEvolutionChart(evolution) {
+            if (!scoreEvolutionChart) {
+                scoreEvolutionChart = new Chart(document.getElementById('scoreEvolutionChart'), {
+                    type: 'line',
+                    data: {
+                        labels: evolution.dates,
+                        datasets: [{
+                            label: 'Average Score',
+                            data: evolution.averages,
+                            fill: false,
+                            borderColor: '#6366f1',
+                            backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#6366f1',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: {
+                            padding: {
+                                left: 20,
+                                right: 20,
+                                top: 20,
+                                bottom: 20
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    stepSize: 10,
+                                    font: {
+                                        size: 12
+                                    }
+                                },
+                                grid: {
+                                    color: '#e5e7eb',
+                                    tickColor: '#d1d5db'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    font: {
+                                        size: 12
+                                    },
+                                    autoSkip: true,
+                                    maxTicksLimit: 10
+                                },
+                                grid: {
+                                    color: '#e5e7eb',
+                                    tickColor: '#d1d5db'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Average Security Score Evolution',
+                                font: {
+                                    size: 14
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return 'Score: ' + context.parsed.y.toFixed(1);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                scoreEvolutionChart.data.labels = evolution.dates;
+                scoreEvolutionChart.data.datasets[0].data = evolution.averages;
+                scoreEvolutionChart.update();
+            }
+        }
+
+        function updateRiskDistributionChart(risk) {
+            if (!riskDistributionChart) {
+                riskDistributionChart = new Chart(document.getElementById('riskDistributionChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(risk),
+                        datasets: [
+                            { 
+                                label: 'Safe',
+                                data: Object.values(risk).map(r => r.safe),
+                                backgroundColor: '#10b981'
+                            },
+                            { 
+                                label: 'Low',
+                                data: Object.values(risk).map(r => r.low),
+                                backgroundColor: '#f59e42'
+                            },
+                            { 
+                                label: 'Medium',
+                                data: Object.values(risk).map(r => r.medium),
+                                backgroundColor: '#fbbf24'
+                            },
+                            { 
+                                label: 'High',
+                                data: Object.values(risk).map(r => r.high),
+                                backgroundColor: '#ef4444'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Risk Distribution Over Time'
+                            }
+                        }
+                    }
+                });
+            } else {
+                riskDistributionChart.data.labels = Object.keys(risk);
+                const values = Object.values(risk);
+                riskDistributionChart.data.datasets[0].data = values.map(r => r.safe);
+                riskDistributionChart.data.datasets[1].data = values.map(r => r.low);
+                riskDistributionChart.data.datasets[2].data = values.map(r => r.medium);
+                riskDistributionChart.data.datasets[3].data = values.map(r => r.high);
+                riskDistributionChart.update();
+            }
+        }
+
+        function updateByExtChart(ext_counts) {
+            if (!byExtChart) {
+                byExtChart = new Chart(document.getElementById('byExtChart'), {
+                    type: 'pie',
+                    data: {
+                        labels: Object.keys(ext_counts).map(e => '.' + e),
+                        datasets: [{
+                            data: Object.values(ext_counts),
+                            backgroundColor: [
+                                '#6366f1', '#f59e42', '#10b981', '#f43f5e',
+                                '#fbbf24', '#3b82f6', '#eab308', '#a21caf'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        layout: {
+                            padding: 0
+                        },
+                        cutout: '80%'
+                    }
+                });
+            } else {
+                byExtChart.data.labels = Object.keys(ext_counts).map(e => '.' + e);
+                byExtChart.data.datasets[0].data = Object.values(ext_counts);
+                byExtChart.update();
+            }
+        }
+
+        // Column sorting state
+        let sortState = {
+            column: '',
+            direction: 'asc'
+        };
+
+        // Sort functions for each column
+        const sortFunctions = {
+            file: (a, b) => a.file.localeCompare(b.file),
+            ext: (a, b) => a.ext.localeCompare(b.ext),
+            score: (a, b) => a.score - b.score,
+            status: (a, b) => a.status.localeCompare(b.status),
+            date: (a, b) => a.date.localeCompare(b.date),
+            risk: (a, b) => a.risk.localeCompare(b.risk)
+        };
+
+        // Sort the files array
+        function sortFiles(files, column) {
+            if (column === sortState.column) {
+                sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortState.column = column;
+                sortState.direction = 'asc';
+            }
+
+            const sortedFiles = [...files];
+            sortedFiles.sort(sortFunctions[column]);
+            if (sortState.direction === 'desc') {
+                sortedFiles.reverse();
+            }
+            return sortedFiles;
+        }
+
+        // Update header arrows
+        function updateHeaderArrows() {
+            const headers = document.querySelectorAll('#detailsTable th');
+            headers.forEach(header => {
+                const arrow = header.querySelector('.sort-arrow');
+                if (arrow) {
+                    arrow.remove();
+                }
+                if (header.textContent.toLowerCase().trim() === sortState.column) {
+                    const arrow = document.createElement('span');
+                    arrow.className = 'sort-arrow ml-1';
+                    arrow.innerHTML = sortState.direction === 'asc' ? '↑' : '↓';
+                    arrow.style.color = '#6366f1'; // Blue color for better visibility
+                    header.appendChild(arrow);
+                }
+            });
+        }
+
+        // Sort table when header is clicked
+        function sortTable(column) {
+            const filteredFiles = getFilteredFiles();
+            const sortedFiles = sortFiles(filteredFiles, column);
+            updateDetailsTable(sortedFiles);
+            updateHeaderArrows();
+        }
+
+        function updateDetailsTable(files) {
+            const tbody = document.getElementById('detailsTableBody');
+            tbody.innerHTML = '';
+            files.forEach(f => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-2 px-4 border-b">${f.file}</td>
+                    <td class="py-2 px-4 border-b">.${f.ext}</td>
+                    <td class="py-2 px-4 border-b">${f.score}</td>
+                    <td class="py-2 px-4 border-b">${f.status}</td>
+                    <td class="py-2 px-4 border-b">${f.date}</td>
+                    <td class="py-2 px-4 border-b">${f.risk}</td>
+                    <td class="py-2 px-4 border-b">
+                        <a href="/v1/file/${encodeURIComponent(f.file.split('/').pop())}" class="text-blue-600 hover:text-blue-800">View</a>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateByExtTable(ext_counts) {
+            const tbody = document.getElementById('byExtTableBody');
+            tbody.innerHTML = '';
+            Object.entries(ext_counts).forEach(([ext, count]) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="py-2 px-4 border-b">.${ext}</td>
+                    <td class="py-2 px-4 border-b">${count}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // INITIAL LOAD
+        populateFilterDropdowns();
+        updateAllStats(statsData.files);
+        showTab('overview');
+        setupHeaderClicks();
+        </script>
+    </div>
+</body>
+</html>

@@ -1,0 +1,3 @@
+name,email,link
+Alice,alice@example.com,https://example.com
+Bob,bob@example.com,javascript:alert('bad')

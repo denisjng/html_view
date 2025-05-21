@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<note>
+  <to>User</to>
+  <from>Admin</from>
+  <heading>Reminder</heading>
+  <body>Don't forget to check for <script>alert('bad')</script> and <!DOCTYPE dangerous SYSTEM "file:///etc/passwd">!</body>
+</note>

