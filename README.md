@@ -5,74 +5,136 @@
 ![HTML Security Dashboard](https://img.shields.io/badge/Security-Analyzer-blue?style=flat-square)
 
 ## 🛡️ Overview
-HTML View is a modern, web-based dashboard for scanning, analyzing, and visualizing HTML and related files for security threats. Built for security researchers, developers, and QA teams, it helps you:
-- **Assess the safety of HTML files**
-- **Detect vulnerabilities and risky constructs**
-- **Understand the severity of web content threats**
+HTML View is a comprehensive web-based application for analyzing and securely viewing HTML files and other text-based content. It provides advanced security analysis, file viewing capabilities, and comprehensive statistics for various file types including HTML, XML, JSON, and CSV.
 
 ---
 
 ## 🚀 Features
-- **Advanced Threat Detection**: Scans for XSS, obfuscated scripts, dangerous tags, malicious attributes, and more
-- **Realistic Security Scoring**: Assigns a severity-weighted score to each file, reflecting the true risk of discovered issues
-- **File Organization**: Automatically sorts files into Safe, Harmful, Complex, and Other categories
-- **Modern UI**: Fast triage with tabbed navigation, file search, and clear error/line pairing
-- **Safe Preview**: Sanitized HTML is rendered in a secure sandboxed iframe—no scripts or styles will execute
+- **Advanced Security Analysis**:
+  - Comprehensive HTML security scanning with weighted scoring
+  - Detection of XSS vulnerabilities, malicious scripts, and dangerous elements
+  - Realistic security scoring system (0-100)
+  - Detailed issue reporting with line-by-line analysis
+
+- **File Viewing & Analysis**:
+  - Secure HTML preview with sandboxing
+  - Support for multiple file formats (HTML, XML, JSON, CSV, TXT)
+  - Syntax highlighting and formatted display
+  - File content analysis and statistics
+
+- **Dashboard & Statistics**:
+  - Comprehensive file analysis dashboard
+  - Detailed security metrics and trends
+  - File categorization and organization
+  - Search and filtering capabilities
+
+- **Security Features**:
+  - Advanced HTML sanitization using multiple methods
+  - File type detection and content validation
+  - Blacklist-based file filtering
+  - Path-based security restrictions
+
+- **Modern UI**:
+  - Responsive Bootstrap 5 interface
+  - Tab-based navigation
+  - Real-time file searching
+  - Clear error visualization
+  - Secure sandboxed previews
 
 ---
 
 ## 🗂️ How to Use
-1. **Start the Flask App**
+
+1. **Installation**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Running the Application**
    ```bash
    python app.py
    ```
-   Then open [http://localhost:5000/](http://localhost:5000/) in your browser.
-2. **Main Dashboard**
-   - Files are grouped in tabs: Safe, Harmful, Complex, Other
-   - Use the search bar to filter files by name or issue
-   - Click "Show Details" to see each detected issue paired with its problematic line
-   - Click "View" to preview the file in a safe, read-only mode
-3. **File Structure**
-   - `v1/file/safe/` – Files with no detected issues
-   - `v1/file/harmful/` – Each file demonstrates a specific security threat
-   - `v1/file/complex/` – Realistic web pages with multiple/subtle issues
-   - `v1/file/other/` – Non-HTML files for parser robustness
+   The application will be available at http://localhost:5000
+
+3. **Main Interface**
+   - **Dashboard View**: Comprehensive overview of all files and their security status
+   - **File Analysis**: Detailed security analysis and content viewing
+   - **Statistics**: In-depth metrics and trends about file content
+
+4. **File Organization**
+   - **Safe Files**: Files with no detected security issues
+   - **Harmful Files**: Files containing potential security threats
+   - **Complex Files**: Files with multiple or subtle security concerns
+   - **Other Files**: Non-HTML files (XML, JSON, CSV, TXT)
+
+5. **Security Features**
+   - Files are automatically sanitized before viewing
+   - Security analysis is performed on all HTML content
+   - Malicious content is highlighted and explained
+   - Safe preview mode prevents script execution
 
 ---
 
-## 🎯 How the Security Score Works
+## 🎯 Security Analysis
 
-The **Security Score** reflects the real-world risk of each HTML file, starting from 100 (safe) and deducting points for each detected issue based on its severity:
+The application performs comprehensive security analysis on HTML files using a weighted scoring system (0-100):
 
-| Threat Type                         | Example/Trigger                | Deduction | Rationale                          |
-|-------------------------------------|-------------------------------|-----------|-------------------------------------|
-| `<script>` tag / obfuscated script  | `<script>`, encoded script    |    -40    | Highest risk: XSS                   |
-| Inline event handler                | `onclick`, `onload`, etc.     |    -20    | Easy XSS, phishing                  |
-| JavaScript URLs                     | `href="javascript:..."`      |    -25    | XSS, drive-by attacks               |
-| `<iframe>` tag                      | `<iframe>`                    |    -18    | Phishing, clickjacking              |
-| `<object>`, `<embed>`, `<applet>`   | Plugin tags                   |    -15    | Plugin-based attacks                |
-| `<form>` with external action       | `action="http://..."`        |    -18    | Data exfiltration, phishing         |
-| `<meta http-equiv="refresh">`      | Meta refresh                  |    -10    | Forced redirects                    |
-| HTML Imports                        | `<link rel="import">`        |    -6     | Deprecated, risky                   |
-| Data URLs                           | `src="data:..."`             |    -8     | Obfuscated payloads                 |
-| `<style>` tag                       | `<style>`                     |    -8     | CSS-based attacks                   |
-| Dangerous inline style              | `style="expression(...)"`    |    -22    | CSS expressions, JS in CSS          |
-| `<base>` tag                        | `<base>`                      |    -7     | Alters URL resolution               |
-| SVG/MathML scripting                | `<svg><script>...</svg>`      |    -10    | Scripting in SVG                    |
-| `<template>` tag                    | `<template>`                  |    -5     | DOM manipulation tricks             |
-| Suspicious comments                 | `<!--#exec-->`                |    -4     | Obfuscation, legacy exploits        |
+### Security Score Components
 
-- **Score never goes below 0.**
-- The dashboard shows the score and main issues for each file, so you can prioritize review and remediation.
+1. **Scripting & Execution**
+   - `<script>` tags and obfuscated scripts (-40)
+   - Inline event handlers (onclick, onload) (-20)
+   - JavaScript URLs (javascript:) (-25)
+   - SVG/MathML scripting (-10)
+
+2. **Navigation & Redirection**
+   - `<iframe>` tags (-18)
+   - `<base>` tag (-7)
+   - Meta refresh (-10)
+
+3. **Data & Content**
+   - External form actions (-18)
+   - Data URLs (-8)
+   - HTML imports (-6)
+
+4. **Styling & Layout**
+   - `<style>` tags (-8)
+   - Dangerous inline styles (-22)
+   - `<template>` tag (-5)
+
+5. **Other Risks**
+   - Suspicious comments (-4)
+   - Object/embed/applet tags (-15)
+
+### Security Measures
+- Files are automatically sanitized using multiple methods:
+  - Bleach-based sanitization
+  - BeautifulSoup parsing
+  - Custom sanitization rules
+- Blacklisted file types and paths are blocked
+- All HTML previews are rendered in secure iframes
+- Malicious content is highlighted and explained
 
 ---
 
 ## 🧑‍💻 Technology Stack
-- **Python 3**
-- **Flask** (web framework)
-- **BeautifulSoup** (HTML parsing)
-- **Bleach** (HTML sanitization)
-- **Bootstrap 5** (UI)
+
+- **Backend**
+  - Python 3.8+
+  - Flask 2.0.0+
+  - BeautifulSoup4 4.12.0+
+  - Bleach 6.1.0+
+
+- **Frontend**
+  - Bootstrap 5
+  - HTML5
+  - CSS3
+  - JavaScript
+
+- **Security Libraries**
+  - BeautifulSoup4 for parsing
+  - Bleach for sanitization
+  - Custom security rules
 
 ---
 
