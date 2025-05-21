@@ -103,35 +103,30 @@ def advanced_security_score_html(html_content):
         issues.append('data_url')
         details.append('Data URL detected')
         score -= 8
-    # 10. <style> tags (may contain CSS expressions)
-    if soup.find_all('style'):
-        issues.append('style_tag')
-        details.append("<style> tag detected")
-        score -= 8
-    # 11. Inline style with dangerous content (CSS expressions, JS in URL)
+    # 10. Inline style with dangerous content (CSS expressions, JS in URL)
     for tag in soup.find_all(True):
         style = tag.get('style', '')
         if 'expression(' in style.lower() or 'javascript:' in style.lower():
             issues.append('inline_style')
             details.append('Dangerous inline style (expression/javascript) detected')
             score -= 22
-    # 12. <base> tag (can change URL resolution)
+    # 11. <base> tag (can change URL resolution)
     if soup.find_all('base'):
         issues.append('base_tag')
         details.append("<base> tag detected")
         score -= 7
-    # 13. SVG/MathML <script> or <foreignObject> (rare, but can be abused)
+    # 12. SVG/MathML <script> or <foreignObject> (rare, but can be abused)
     for svg in soup.find_all('svg'):
         if svg.find_all(['script', 'foreignObject']):
             issues.append('svg_script_or_foreignObject')
             details.append("SVG/MathML with script/foreignObject detected")
             score -= 10
-    # 14. <template> tag (can be used for DOM tricks)
+    # 13. <template> tag (can be used for DOM tricks)
     if soup.find_all('template'):
         issues.append('template_tag')
         details.append("<template> tag detected")
         score -= 5
-    # 15. Suspicious comments (e.g., <!--#exec -->, base64, conditional comments)
+    # 14. Suspicious comments (e.g., <!--#exec -->, base64, conditional comments)
     comments = soup.find_all(string=lambda text: isinstance(text, Comment))
     for c in comments:
         if re.search(r'exec|base64|\[if|#inclu', c, re.IGNORECASE):
@@ -150,14 +145,6 @@ def remove_harmful_parts(html_content, issues):
     # Remove <script> tags and their content
     if 'script_tag' in issues:
         [tag.decompose() for tag in soup.find_all('script')]
-    # Remove <style> tags and their content
-    if 'style_tag' in issues:
-        [tag.decompose() for tag in soup.find_all('style')]
-        # Also remove all <style> tag text nodes left behind (edge case)
-        for text in soup.find_all(string=True):
-            parent = text.parent
-            if parent and parent.name == '[document]' and '{' in text and '}' in text:
-                text.extract()
     # Remove inline event handlers
     if 'inline_event_handler' in issues:
         for tag in soup.find_all(True):
