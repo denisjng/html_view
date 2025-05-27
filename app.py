@@ -284,8 +284,6 @@ def extract_lines_with_issues(html_content, issues, details):
                 # For other issues, show only the first matching line
                 matching_line = matching_lines[0]
         result.append(matching_line)
-    
-    return result
     return result
 
 # --- Utility for advanced bleach sanitization ---
