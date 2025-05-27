@@ -103,35 +103,30 @@ def advanced_security_score_html(html_content):
         issues.append('data_url')
         details.append('Data URL detected')
         score -= 8
-    # 10. <style> tags (may contain CSS expressions)
-    if soup.find_all('style'):
-        issues.append('style_tag')
-        details.append("<style> tag detected")
-        score -= 8
-    # 11. Inline style with dangerous content (CSS expressions, JS in URL)
+    # 10. Inline style with dangerous content (CSS expressions, JS in URL)
     for tag in soup.find_all(True):
         style = tag.get('style', '')
         if 'expression(' in style.lower() or 'javascript:' in style.lower():
             issues.append('inline_style')
             details.append('Dangerous inline style (expression/javascript) detected')
             score -= 22
-    # 12. <base> tag (can change URL resolution)
+    # 11. <base> tag (can change URL resolution)
     if soup.find_all('base'):
         issues.append('base_tag')
         details.append("<base> tag detected")
         score -= 7
-    # 13. SVG/MathML <script> or <foreignObject> (rare, but can be abused)
+    # 12. SVG/MathML <script> or <foreignObject> (rare, but can be abused)
     for svg in soup.find_all('svg'):
         if svg.find_all(['script', 'foreignObject']):
             issues.append('svg_script_or_foreignObject')
             details.append("SVG/MathML with script/foreignObject detected")
             score -= 10
-    # 14. <template> tag (can be used for DOM tricks)
+    # 13. <template> tag (can be used for DOM tricks)
     if soup.find_all('template'):
         issues.append('template_tag')
         details.append("<template> tag detected")
         score -= 5
-    # 15. Suspicious comments (e.g., <!--#exec -->, base64, conditional comments)
+    # 14. Suspicious comments (e.g., <!--#exec -->, base64, conditional comments)
     comments = soup.find_all(string=lambda text: isinstance(text, Comment))
     for c in comments:
         if re.search(r'exec|base64|\[if|#inclu', c, re.IGNORECASE):
@@ -150,14 +145,6 @@ def remove_harmful_parts(html_content, issues):
     # Remove <script> tags and their content
     if 'script_tag' in issues:
         [tag.decompose() for tag in soup.find_all('script')]
-    # Remove <style> tags and their content
-    if 'style_tag' in issues:
-        [tag.decompose() for tag in soup.find_all('style')]
-        # Also remove all <style> tag text nodes left behind (edge case)
-        for text in soup.find_all(string=True):
-            parent = text.parent
-            if parent and parent.name == '[document]' and '{' in text and '}' in text:
-                text.extract()
     # Remove inline event handlers
     if 'inline_event_handler' in issues:
         for tag in soup.find_all(True):
@@ -247,51 +234,58 @@ def remove_harmful_parts(html_content, issues):
     return str(soup)
 
 
-def extract_lines_with_issues(html_content, issues):
+def extract_lines_with_issues(html_content, issues, details):
     """
     Extracts lines from the HTML that correspond to detected issues.
     Returns a list of lines, one per issue, in the same order as the issues list.
     """
     lines = html_content.splitlines()
     result = []
-    # Map issue types to detection logic
-    for idx, line in enumerate(lines, 1):
-        l = line.lower()
-        # Each if checks for a specific issue and adds the line if matched
-        if 'script' in issues and '<script' in l:
-            result.append(f"Line {idx}: {line.strip()}")
-        if 'iframe' in issues and '<iframe' in l:
-            result.append(f"Line {idx}: {line.strip()}")
-        if 'inline_event_handler' in issues and ('onclick' in l or 'onload' in l or 'onerror' in l):
-            result.append(f"Line {idx}: {line.strip()}")
-        if 'javascript_url' in issues and 'javascript:' in l:
-            result.append(f"Line {idx}: {line.strip()}")
-        if 'object_tag' in issues and '<object' in l:
-            result.append(f"Line {idx}: {line.strip()}")
-        if 'embed_tag' in issues and '<embed' in l:
-            result.append(f"Line {idx}: {line.strip()}")
-        if 'applet_tag' in issues and '<applet' in l:
-            result.append(f"Line {idx}: {line.strip()}")
-        if 'form_external' in issues and '<form' in l:
-            result.append(f"Line {idx}: {line.strip()}")
-        if 'meta_refresh' in issues and '<meta' in l and 'refresh' in l:
-            result.append(f"Line {idx}: {line.strip()}")
-        if 'html_import' in issues and '<link' in l and 'import' in l:
-            result.append(f"Line {idx}: {line.strip()}")
-        if 'data_url' in issues and 'data:' in l:
-            result.append(f"Line {idx}: {line.strip()}")
-        if 'style_tag' in issues and '<style' in l:
-            result.append(f"Line {idx}: {line.strip()}")
-        if 'inline_style' in issues and 'style=' in l:
-            result.append(f"Line {idx}: {line.strip()}")
-        if 'base_tag' in issues and '<base' in l:
-            result.append(f"Line {idx}: {line.strip()}")
-        if 'svg_script_or_foreignObject' in issues and '<svg' in l:
-            result.append(f"Line {idx}: {line.strip()}")
-        if 'template_tag' in issues and '<template' in l:
-            result.append(f"Line {idx}: {line.strip()}")
-        if 'suspicious_comment' in issues and 'exec' in l:
-            result.append(f"Line {idx}: {line.strip()}")
+    
+    # Create a mapping of issues to their specific patterns
+    issue_patterns = {
+        'script_tag': ['<script', 'script'],
+        'iframe_tag': ['<iframe'],
+        'inline_event_handler': ['onclick', 'onload', 'onerror', 'onmouseover', 'onchange'],
+        'javascript_url': ['javascript:'],
+        'object_tag': ['<object'],
+        'embed_tag': ['<embed'],
+        'applet_tag': ['<applet'],
+        'form_external': ['<form'],
+        'meta_refresh': ['<meta', 'refresh'],
+        'html_import': ['<link', 'import'],
+        'data_url': ['data:'],
+        'style_tag': ['<style'],
+        'inline_style': ['style='],
+        'base_tag': ['<base'],
+        'svg_script_or_foreignObject': ['<svg', '<script', '<foreignobject'],
+        'template_tag': ['<template'],
+        'suspicious_comment': ['exec', 'base64', '[if', '#inclu']
+    }
+    
+    # For each issue, find the matching line(s)
+    for issue, detail in zip(issues, details):
+        matching_lines = []
+        # Check each line for a match with the current issue
+        for idx, line in enumerate(lines, 1):
+            l = line.lower()
+            if issue in issue_patterns:
+                patterns = issue_patterns[issue]
+                if any(pattern in l for pattern in patterns):
+                    matching_lines.append(f"Line {idx}: {line.strip()}")
+        # If no matching lines found, use the detail as fallback
+        if not matching_lines:
+            matching_line = f"Issue detected: {detail}"
+        else:
+            # For suspicious comments, show all matching lines
+            if issue == 'suspicious_comment':
+                matching_line = '\n'.join(matching_lines)
+            else:
+                # For other issues, show only the first matching line
+                matching_line = matching_lines[0]
+        result.append(matching_line)
+    
+    return result
     return result
 
 # --- Utility for advanced bleach sanitization ---
@@ -464,7 +458,7 @@ def analyze_file_content(filename: str, raw: str, filetype: str) -> Dict[str, An
     """
     if filetype == 'html':
         score, issues, details = advanced_security_score_html(raw)
-        lines = extract_lines_with_issues(raw, issues)
+        lines = extract_lines_with_issues(raw, issues, details)
         return dict(score=score, issues=issues, details=details, lines=lines)
     if filetype == 'xml':
         try:
@@ -520,24 +514,6 @@ def analyze_file_content(filename: str, raw: str, filetype: str) -> Dict[str, An
         score = 100 - 30*len(issues)
         return dict(score=max(score,0), issues=issues, details=details, lines=[f"Line {i+1}: {l}" for i,l in enumerate(lines) if '<script' in l.lower()])
     return dict(score=0, issues=['unknown_type'], details=['Unknown file type'], lines=[])
-
-# --- Download sanitized version endpoint ---
-@app.route('/download_sanitized/<path:filename>/<mode>')
-def download_sanitized(filename, mode):
-    """
-    Downloads a sanitized version of the file.
-    """
-    filepath = unquote(filename)
-    filetype = detect_file_type(filepath)
-    if not os.path.exists(filepath):
-        return render_custom_error("Not Found", "File does not exist.", 404)
-    with open(filepath, encoding='utf-8', errors='replace') as f:
-        raw = f.read()
-    if filetype == 'html':
-        sanitized = sanitize_html_bleach(raw, mode=mode)
-        return send_file(io.BytesIO(sanitized.encode('utf-8')), mimetype='text/html', as_attachment=True, download_name=f"{os.path.basename(filepath)}.sanitized.html")
-    # For xml, json, csv, txt: just return as txt
-    return send_file(io.BytesIO(raw.encode('utf-8')), mimetype='text/plain', as_attachment=True, download_name=f"{os.path.basename(filepath)}.sanitized.txt")
 
 # --- Update <filename> to support all file types ---
 @app.route('/<path:filename>')
